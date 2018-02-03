@@ -21,3 +21,4 @@ python-socketio==1.8.4
 six==1.11.0
 Werkzeug==0.14.1
 wrapt==1.10.11
+opencv-python
