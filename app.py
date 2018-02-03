@@ -14,7 +14,7 @@ socketio = SocketIO(app)
 
 @app.route('/')
 def index():
-    return render_template('index')
+    return render_template('index.html')
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
