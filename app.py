@@ -34,7 +34,7 @@ def test_image(message):
     stardust.trace(img, Constellation.Sagittarius())
     print("saved")
     emit('my_response', {'data': "traced"})
-#
+
 def readb64(b64_str):
     sbuf = BytesIO()
     sbuf.write(base64.b64decode(b64_str))
