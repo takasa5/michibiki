@@ -11,10 +11,10 @@ from io import BytesIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kingofsecretyeahhhhh'
 socketio = SocketIO(app)
-#a
+
 @app.route('/')
 def index():
-    return render_template('index_html')
+    return render_template('index')
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
