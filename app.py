@@ -7,10 +7,17 @@ from PIL import Image
 from io import BytesIO
 import Constellation
 import stardust
+import time
 
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode="eventlet")
+
+def sleeper():
+    while True:
+        time.sleep(1)
+        socketio.emit("message", "dummy", namespace="/test")
+        socketio.sleep(0)
 
 def background(message):
     img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
@@ -37,7 +44,7 @@ def index():
 @socketio.on('connect', namespace='/test')
 def test_connect():
     print("connect")
-    #socketio.start_background_task(target=background)
+    #socketio.start_background_task(target=sleeper)
     emit('my_response', {'data': 'Connected!'})
 
 @socketio.on('my_ping', namespace='/test')
