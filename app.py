@@ -8,9 +8,28 @@ from io import BytesIO
 import Constellation
 import stardust
 
-app = Flask(__name__)
-socketio = SocketIO(app)
 
+app = Flask(__name__)
+socketio = SocketIO(app, async_mode="eventlet")
+
+def background(message):
+    img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
+    socketio.emit('my_response', {'data': "changed to data"}, namespace="/test")
+    socketio.sleep(0)
+    
+    traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
+    socketio.emit('my_response', {'data': "found constellation"}, namespace="/test")
+    socketio.sleep(0)
+
+    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
+    sbuf = BytesIO()
+    pil_img.save(sbuf, format='JPEG')
+    sbuf = sbuf.getvalue()
+    encode_img = base64.b64encode(sbuf)
+
+    socketio.emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")}, namespace="/test")
+
+    
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -18,6 +37,7 @@ def index():
 @socketio.on('connect', namespace='/test')
 def test_connect():
     print("connect")
+    #socketio.start_background_task(target=background)
     emit('my_response', {'data': 'Connected!'})
 
 @socketio.on('my_ping', namespace='/test')
@@ -32,18 +52,9 @@ def test_message(message):
 @socketio.on('my_image', namespace='/test')
 def test_image(message):
     print("recv")
-    emit('my_response', {'data': "received data"})
-    img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
-    
-    traced_img = stardust.trace(img, Constellation.Sagittarius())
-    
-    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
-    sbuf = BytesIO()
-    pil_img.save(sbuf, format='JPEG')
-    sbuf = sbuf.getvalue()
-    encode_img = base64.b64encode(sbuf)
-
-    emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")})
+    emit('my_response', {'data': "received image"})
+    socketio.sleep(0)
+    socketio.start_background_task(background, message)
 
 def readb64(b64_str):
     sbuf = BytesIO()

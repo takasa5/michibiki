@@ -20,21 +20,26 @@
                 }else{console.log("File API is NOT available");}
 
                 namespace = '/test';
-                var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-                //var socket = io('http://127.0.0.1:5000' + namespace);
+                //var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+                var socket = io('http://127.0.0.1:5000' + namespace);
                 console.log(socket);
+                /*
                 window.setInterval(function() {
                     socket.emit('my_ping');
                 }, 10000);
                 socket.on('my_pong', function() {
                     console.log("pong");
                 });
+                */
                 socket.on('connect', function() {
                     console.log("connect");
                     socket.emit('my_event', {data: "Checked connection"});
                 });
                 socket.on('my_response', function(msg) {
                     $("#log").append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
+                });
+                socket.on('message', function() {
+                    console.log("message");
                 });
                 socket.on('return_image', function(msg) {
                     console.log("image received");

@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 import math, os, sys, time
 import Constellation 
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 
 END = (2**16, 2**16)
 WHITE = (255, 255, 255)
@@ -109,17 +111,24 @@ def search_near_star(x, y, i, stars):
     index = np.array(L)
     index = np.argsort(index)
     return stars[index[i]]
-
+socket = None
 def draw_line(img, stars, constellation):
     C = constellation
     global likelihood
     global star_count
+    global socket
 
     print("try to find in " + str(len(stars)) + "stars")
 
     stella_count = 0
     stella_data, like_list = [], []
+    sockcnt = 0
     for star in stars:
+        if socket is not None:
+            socket.emit('my_response', {"data": "trace:" + str(sockcnt)}, namespace="/test")
+            sockcnt += 1
+            socket.sleep(0)
+        
         star_count = 1
         std = np.array([star[0][0], star[0][1]])
         i = 1
@@ -276,9 +285,13 @@ def trac_constellation(write, img, bp, bec, std_p, std_d, stars, constellation):
 
         return trac_constellation(write, img, tp, tp-bp, std_p, std_d, stars, C)
 
-def trace(cv2img, constellation):
+def trace(cv2img, constellation, sock):
     """外部から使うための関数"""
+    global socket
+    socket = sock
     stars = detect_stars(cv2img)
+    sock.emit('my_response', {"data": "detected stars from image"}, namespace='/test')
+    sock.sleep(0)
     draw_line(cv2img, stars, constellation.get())
     #cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)
     return cv2img
