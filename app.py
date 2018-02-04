@@ -38,7 +38,7 @@ def test_image(message):
     pil_img.save(sbuf, format='JPEG')
     sbuf = sbuf.getvalue()
     encode_img = base64.b64encode(sbuf)
-    print(encode_img)
+
     emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")})
 
 def readb64(b64_str):
