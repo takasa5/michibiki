@@ -23,6 +23,12 @@
                 var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
                 //var socket = io('http://127.0.0.1:5000' + namespace);
                 console.log(socket);
+                window.setInterval(function() {
+                    socket.emit('my_ping');
+                }, 10000);
+                socket.on('my_pong', function() {
+                    console.log("pong");
+                });
                 socket.on('connect', function() {
                     console.log("connect");
                     socket.emit('my_event', {data: "Checked connection"});

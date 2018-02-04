@@ -20,6 +20,10 @@ def test_connect():
     print("connect")
     emit('my_response', {'data': 'Connected!'})
 
+@socketio.on('my_ping', namespace='/test')
+def ping_pong():
+    emit('my_pong')
+
 @socketio.on('my_event', namespace='/test')
 def test_message(message):
     print("event")

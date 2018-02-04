@@ -114,19 +114,8 @@ def draw_line(img, stars, constellation):
     C = constellation
     global likelihood
     global star_count
-    navg = 0
-    med = []
-    ma = []
+
     print("try to find in " + str(len(stars)) + "stars")
-    for star in stars:
-        s = np.array([star[0][0], star[0][1]])
-        ns = search_near_star(s[0], s[1], 1, stars)
-        ms = search_near_star(s[0], s[1], int(DEPTH/2), stars)
-        ma.append(np.linalg.norm(ms - s))
-        med.append(np.linalg.norm(ns - s))
-    #navg /= len(stars)
-    lowmed = np.median(med)
-    midmax = np.amax(ma)
 
     stella_count = 0
     stella_data, like_list = [], []
@@ -138,13 +127,7 @@ def draw_line(img, stars, constellation):
             #2番目の星候補
             p1 = search_near_star(std[0], std[1], i, stars)[0]
             d1 = np.linalg.norm(std-p1)
-            """
-            if d1 < lowmed:
-                i += 1
-                continue
-            elif i > DEPTH or d1 > midmax:
-                break #次の根(基準星)へ
-            """
+            
             if i > DEPTH:
                 break
             #2番目の星から先で星座が書けるかどうかをチェック
