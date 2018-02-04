@@ -4,11 +4,15 @@
         <title>Stella Tracer(test)</title>
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script tyoe="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+
+        <script type="text/javascript" src="jquery-3.2.1.min.js"></script>
+        <script tyoe="text/javascript" src="socket.io.min.js"></script>
+
         <script type="text/javascript">
             $(document).ready(function() {
                 var reader = new FileReader();
                 reader.addEventListener('load', function(){
-                    $("#result").html('<img src="'+reader.result+'">');
+                    $("#thumbnail").html('<img src="'+reader.result+'">');
                 });
 
                 if (window.File && window.FileReader) {
@@ -21,10 +25,15 @@
                 console.log(socket);
                 socket.on('connect', function() {
                     console.log("connect");
-                    socket.emit('my_event', {data: "connected"});
+                    socket.emit('my_event', {data: "Checked connection"});
                 });
                 socket.on('my_response', function(msg) {
                     $("#log").append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
+                });
+                socket.on('return_image', function(msg) {
+                    console.log("image received");
+                    console.log(msg.data)
+                    $("#result").html('<img src="'+msg.data+'">');
                 });
 
                 $('form#emit').submit(function(event) {
@@ -57,7 +66,8 @@
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
             <input multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
             <input type="submit" value="Send">
-            <div id="result"></div>
+            <div style="float:left;" id="thumbnail"></div>
+            <div style="float:left;" id="result"></div>
         </form>
         <div id="log"></div>
     </body>

@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 import math, os, sys, time
-import Constellation
+import Constellation 
 
 END = (2**16, 2**16)
 WHITE = (255, 255, 255)
@@ -297,7 +297,8 @@ def trace(cv2img, constellation):
     """外部から使うための関数"""
     stars = detect_stars(cv2img)
     draw_line(cv2img, stars, constellation.get())
-    cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)
+    #cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)
+    return cv2img
 
 if __name__ == '__main__':
     start = time.time()

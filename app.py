@@ -28,11 +28,18 @@ def test_message(message):
 @socketio.on('my_image', namespace='/test')
 def test_image(message):
     print("recv")
-    emit('my_response', {'data': message['data']})
+    emit('my_response', {'data': "received data"})
     img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
-    stardust.trace(img, Constellation.Sagittarius())
-    print("saved")
-    emit('my_response', {'data': "traced"})
+    
+    traced_img = stardust.trace(img, Constellation.Sagittarius())
+    
+    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
+    sbuf = BytesIO()
+    pil_img.save(sbuf, format='JPEG')
+    sbuf = sbuf.getvalue()
+    encode_img = base64.b64encode(sbuf)
+    print(encode_img)
+    emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")})
 
 def readb64(b64_str):
     sbuf = BytesIO()
