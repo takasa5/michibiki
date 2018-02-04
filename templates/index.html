@@ -16,8 +16,8 @@
                 }else{console.log("File API is NOT available");}
 
                 namespace = '/test';
-                //var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-                var socket = io('http://127.0.0.1:5000' + namespace);
+                var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+                //var socket = io('http://127.0.0.1:5000' + namespace);
                 console.log(socket);
                 socket.on('connect', function() {
                     console.log("connect");

@@ -9,7 +9,6 @@ import Constellation
 import stardust
 
 app = Flask(__name__)
-#app.config['SECRET_KEY'] = 'kingofsecretyeahhhhh'
 socketio = SocketIO(app)
 
 @app.route('/')
