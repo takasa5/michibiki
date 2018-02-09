@@ -8,8 +8,9 @@ from io import BytesIO
 import Constellation
 import stardust
 import time
+import msgpack
 
-
+data_buffer = ""
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode="eventlet")
 
@@ -20,6 +21,10 @@ def sleeper():
         socketio.sleep(0)
 
 def background(message):
+    #print(message['data'])
+    ret = msgpack.unpackb(message['data'])
+    print(ret)
+    """
     img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
     socketio.emit('my_response', {'data': "changed to data"}, namespace="/test")
     socketio.sleep(0)
@@ -35,7 +40,7 @@ def background(message):
     encode_img = base64.b64encode(sbuf)
 
     socketio.emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")}, namespace="/test")
-
+    """
     
 @app.route('/')
 def index():
@@ -62,6 +67,39 @@ def test_image(message):
     emit('my_response', {'data': "received image"})
     socketio.sleep(0)
     socketio.start_background_task(background, message)
+
+@socketio.on('data_start', namespace='/test')
+def recv_start(message):
+    global data_buffer
+    data_buffer += message['data']
+    #print(type(message['data']))
+    emit('require_data', {'data': "require", 'index': message['index']+1})
+
+@socketio.on('data_cont', namespace='/test')
+def recv_cont(message):
+    global data_buffer
+    data_buffer += message['data']
+    emit('require_data', {'data': "require", 'index': message['index']+1})
+
+@socketio.on('data_end', namespace='/test')
+def recv_end(message):
+    global data_buffer
+    print("len:", len(data_buffer))
+    img = readb64(data_buffer.split("data:image/jpeg;base64,")[1])
+    data_buffer = ""
+    traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
+    emit('my_response', {'data': "found constellation"})
+    socketio.sleep(0)
+
+    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
+    sbuf = BytesIO()
+    pil_img.save(sbuf, format='JPEG')
+    sbuf = sbuf.getvalue()
+    encode_img = base64.b64encode(sbuf)
+    #100~101????????
+
+    socketio.emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")}, namespace="/test")
+    print("finish!")
 
 def readb64(b64_str):
     sbuf = BytesIO()

@@ -125,7 +125,8 @@ def draw_line(img, stars, constellation):
     sockcnt = 0
     for star in stars:
         if socket is not None:
-            socket.emit('my_response', {"data": "trace:" + str(sockcnt)}, namespace="/test")
+            #socket.emit('my_response', {"data": "trace:" + str(sockcnt)}, namespace="/test")
+            socket.emit('searching', {"data": sockcnt}, namespace="/test")
             sockcnt += 1
             socket.sleep(0)
         

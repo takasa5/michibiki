@@ -1,18 +1,28 @@
 <!DOCTYPE HTML>
 <html>
     <head>
+        <meta charset="utf-8">
         <title>Stella Tracer(test)</title>
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-        <script tyoe="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
-
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+        <!--
+        <script type="text/javascript" src="https://rawgit.com/kawanet/msgpack-lite/master/dist/msgpack.min.js"></script>
+        -->
         <script type="text/javascript" src="jquery-3.2.1.min.js"></script>
         <script tyoe="text/javascript" src="socket.io.min.js"></script>
-
+        <!--
+        <script type="text/javascript" src="msgpack.min.js"></script>
+        -->
         <script type="text/javascript">
             $(document).ready(function() {
-                var reader = new FileReader();
-                reader.addEventListener('load', function(){
-                    $("#thumbnail").html('<img src="'+reader.result+'">');
+                var thumb = new FileReader();
+    
+                var b64arr = [];
+                thumb.addEventListener('load', function() {
+                    $("#thumbnail").html('<img src="'+thumb.result+'">');
+                    b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 100));
+                    console.log("b64arr length:"+b64arr.length);
+                    console.log("[] length:"+b64arr[0].length);
                 });
 
                 if (window.File && window.FileReader) {
@@ -20,17 +30,15 @@
                 }else{console.log("File API is NOT available");}
 
                 namespace = '/test';
-                var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-                //var socket = io('http://127.0.0.1:5000' + namespace);
+                var hostname = document.location.hostname;
+                console.log("hostname:"+hostname);
+                if (hostname == "localhost" || hostname == "127.0.0.1" || hostname == "") {
+                    var socket = io('http://127.0.0.1:5000' + namespace);
+                } else {
+                    var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+                }
                 console.log(socket);
-                /*
-                window.setInterval(function() {
-                    socket.emit('my_ping');
-                }, 10000);
-                socket.on('my_pong', function() {
-                    console.log("pong");
-                });
-                */
+                
                 socket.on('connect', function() {
                     console.log("connect");
                     socket.emit('my_event', {data: "Checked connection"});
@@ -46,6 +54,20 @@
                     console.log(msg.data)
                     $("#result").html('<img src="'+msg.data+'">');
                 });
+                //分割データ受信
+                socket.on('require_data', function(msg) {
+                    if (msg.index == b64arr.length) {
+                        socket.emit('data_end', {data: ""});
+                        $("#log").append('<br>' + $('<div/>').text("finish sending").html());
+                    }else{
+                        $("#sendBar").val(msg.index)
+                        socket.emit('data_cont', {data: b64arr[msg.index], index: msg.index});
+                    }
+                });
+
+                socket.on('searching', function(msg){
+                    $("#searchBar").val(msg.data)
+                });
 
                 $('form#emit').submit(function(event) {
                     console.log("pushed");
@@ -53,15 +75,37 @@
                     return false;
                 });
                 $('#image_data').change(function(){
-                    console.log(this.files[0]);
-                    reader.readAsDataURL(this.files[0]);
+                    //reader.readAsArrayBuffer(this.files[0]);
+                    thumb.readAsDataURL(this.files[0]);
                 });
                 $("form#image").submit(function(event) {
-                    console.log(reader.result);
-                    socket.emit('my_image', {data: reader.result});
-                    return false;
+                    if (thumb.result == null) {
+                        alert("ファイルを指定してください");
+                    }else {
+                        console.log(thumb.result.length)
+                        $("#log").append('<br>' + $('<div/>').text("send").html());
+                        //socket.emit('my_image', {data: buf});
+                        socket.emit('data_start', {data: b64arr[0], index: 0});
+                        return false;
+                    }
                 });
             });
+            function lsplit(str, length) {
+                var resultArr = [];
+                if (!str || !length || length < 1) {
+                    return resultArr;
+                }
+                var index = 0;
+                var start = index;
+                var end = start + length;
+                while (start < str.length) {
+                    resultArr[index] = str.substring(start, end);
+                    index++;
+                    start = end;
+                    end = start + length;
+                }
+                return resultArr;
+            }
         </script>
         <style type="text/css">
         img {
@@ -80,6 +124,10 @@
             <div style="float:left;" id="thumbnail"></div>
             <div style="float:left;" id="result"></div>
         </form>
+        <p>
+            Send Progress  : <progress value=0 id="sendBar" max=100></progress><br>
+            Search Progress: <progress value=0 id="searchBar" max=119></progress><br>
+        </p>
         <div id="log"></div>
     </body>
 </html>
