@@ -8,7 +8,6 @@ from io import BytesIO
 import Constellation
 import stardust
 import time
-import msgpack
 
 data_buffer = ""
 app = Flask(__name__)
@@ -21,9 +20,10 @@ def sleeper():
         socketio.sleep(0)
 
 def background(message):
+    pass
     #print(message['data'])
-    ret = msgpack.unpackb(message['data'])
-    print(ret)
+    #ret = msgpack.unpackb(message['data'])
+    #print(ret)
     """
     img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
     socketio.emit('my_response', {'data': "changed to data"}, namespace="/test")
