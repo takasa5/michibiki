@@ -126,7 +126,8 @@ def draw_line(img, stars, constellation):
     for star in stars:
         if socket is not None:
             #socket.emit('my_response', {"data": "trace:" + str(sockcnt)}, namespace="/test")
-            socket.emit('searching', {"data": sockcnt}, namespace="/test")
+            #socket.emit('searching', {"data": sockcnt}, namespace="/test")
+            emit('searching', {"data": sockcnt})
             sockcnt += 1
             socket.sleep(0)
         
@@ -291,7 +292,7 @@ def trace(cv2img, constellation, sock):
     global socket
     socket = sock
     stars = detect_stars(cv2img)
-    sock.emit('my_response', {"data": "detected stars from image"}, namespace='/test')
+    emit('my_response', {"data": "detected stars from image"})
     sock.sleep(0)
     draw_line(cv2img, stars, constellation.get())
     #cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)

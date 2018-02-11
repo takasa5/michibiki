@@ -108,13 +108,17 @@
             }
         </script>
         <style type="text/css">
+        #title {
+            font-weight: bold;
+            font-size: 3em;
+        }
         #thumbnail, #result{
             float: left;
             background-color: lightcyan;
             padding: 10px;
             margin: 5px;
             width: 30%;
-            height: 400px;
+            height: 300px;
             border-top: solid 5px  rgb(55, 124, 189);
             text-align: center;
         }
@@ -125,18 +129,18 @@
         }
         img {
             width: 90%;
-            height: 400px;
+            height: 300px;
             object-fit: contain;
         }
         </style>
     </head>
     <body>
-        <!--
+        <div id="title">Stella-Tracer</div>
         <form id="emit" method="POST" action='#'>
             <input type="text" name="emit_data" id="emit_data" placeholder="Message">
             <input type="submit" value="Echo">
         </form>
-        -->
+        
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
             対象の画像:
             <input multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
