@@ -78,7 +78,7 @@
                     //reader.readAsArrayBuffer(this.files[0]);
                     thumb.readAsDataURL(this.files[0]);
                 });
-                $("form#image").submit(function(event) {
+                $("form#toServer").submit(function(event) {
                     if (thumb.result == null) {
                         alert("ファイルを指定してください");
                     }else {
@@ -108,22 +108,60 @@
             }
         </script>
         <style type="text/css">
+        #thumbnail, #result{
+            float: left;
+            background-color: lightcyan;
+            padding: 10px;
+            margin: 5px;
+            width: 30%;
+            height: 400px;
+            border-top: solid 5px  rgb(55, 124, 189);
+            text-align: center;
+        }
+        .clearfix:after {
+            clear: both;
+            content: "";
+            display: block;
+        }
         img {
-            width: 30%
+            width: 90%;
+            height: 400px;
+            object-fit: contain;
         }
         </style>
     </head>
     <body>
+        <!--
         <form id="emit" method="POST" action='#'>
             <input type="text" name="emit_data" id="emit_data" placeholder="Message">
             <input type="submit" value="Echo">
         </form>
+        -->
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
+            対象の画像:
             <input multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
-            <input type="submit" value="Send">
-            <div style="float:left;" id="thumbnail"></div>
-            <div style="float:left;" id="result"></div>
         </form>
+        <form>
+            探したい星座:
+            <select>
+                <option value="sagittarius">いて座</option>
+            </select>
+        </form>
+        <form id="toServer">
+            <input type="submit" value="Send">
+        </form>
+        <div id="imagecontainer" class="clearfix">
+            <div id="thumbnail">
+                    <p>
+                        ここに画像が表示されます
+                    </p>
+                </div>
+            <div id="result">
+                    <p>
+                        ここに画像が表示されます
+                    </p>
+            </div>
+        </div>
         <p>
             Send Progress  : <progress value=0 id="sendBar" max=100></progress><br>
             Search Progress: <progress value=0 id="searchBar" max=119></progress><br>

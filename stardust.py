@@ -299,8 +299,8 @@ def trace(cv2img, constellation, sock):
 
 if __name__ == '__main__':
     start = time.time()
-    IMAGE_FILE = "1499" #スピード:test < 1618 <= 1614 << 1916
-    f = "source\\" + IMAGE_FILE + ".JPG"
+    IMAGE_FILE = "1614" #スピード:test < 1618 <= 1614 << 1916
+    f = "..\\stardust\\source\\" + IMAGE_FILE + ".JPG"
     img = cv2.imread(f)
     cs = Constellation.Sagittarius()
     #cs = Constellation.Perseus()
@@ -320,5 +320,5 @@ if __name__ == '__main__':
     cv2.imshow("stardust", img)
     cv2.setMouseCallback("stardust", on_mouse, stars)
     print("time:", time.time()-start)
-    cv2.imwrite(cs.get_name() + "_" + IMAGE_FILE + ".JPG", img)
+    #cv2.imwrite(cs.get_name() + "_" + IMAGE_FILE + ".JPG", img)
     cv2.waitKey()
