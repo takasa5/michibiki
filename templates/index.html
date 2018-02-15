@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <title>Stella Tracer(test)</title>
+        <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
         <!--
@@ -41,6 +42,7 @@
                 
                 socket.on('connect', function() {
                     console.log("connect");
+                    $(".progressbar").val(0);
                     socket.emit('my_event', {data: "Checked connection"});
                 });
                 socket.on('my_response', function(msg) {
@@ -83,6 +85,7 @@
                         alert("ファイルを指定してください");
                     }else {
                         console.log(thumb.result.length)
+                        $(".progressbar").val(0);
                         $("#log").append('<br>' + $('<div/>').text("send").html());
                         //socket.emit('my_image', {data: buf});
                         socket.emit('data_start', {data: b64arr[0], index: 0});
@@ -112,12 +115,62 @@
             font-weight: bold;
             font-size: 3em;
         }
-        #thumbnail, #result{
-            float: left;
+        @media screen and (max-width: 959px) {
+            #back {
+                width: 100%;
+                text-align: center;
+                margin: 0 auto;
+            }
+        }
+        @media screen and (min-width: 960px) {
+            #back {
+                width: 70%;
+                text-align: center;
+                margin: 0 auto;
+            }
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5em 1em;
+            text-decoration: none;
+            background: rgb(55, 124, 189);
+            color: #FFF;
+            border-bottom: solid 4px rgb(43, 93, 141);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .btn:active {
+            transform: translateY(4px);
+            border-bottom: none;
+        }
+        #processBox {
+            display: inline-block;
+            margin: 12px;
+            position: relative;
+            width: 25%;
+            height: 100px;
+            background: rgb(241, 230, 132);
+            text-align: center;
+            vertical-align: middle;
+        }
+        .triangle {
+            position: absolute;
+            top: 0px;
+            left: 100%;
+            width: 0;
+            height: 0;
+            background: transparent;
+            border-left: 30px solid rgb(241, 230, 132);
+            border-top: 50px solid transparent;
+            border-bottom: 50px solid transparent;
+        }
+        #imageBox {
+            display: inline-block;
             background-color: lightcyan;
             padding: 10px;
             margin: 5px;
-            width: 30%;
+            width: 40%;
             height: 300px;
             border-top: solid 5px  rgb(55, 124, 189);
             text-align: center;
@@ -135,41 +188,60 @@
         </style>
     </head>
     <body>
+        <div id="back">
         <div id="title">Stella-Tracer</div>
         <form id="emit" method="POST" action='#'>
+            デバッグ用:
             <input type="text" name="emit_data" id="emit_data" placeholder="Message">
             <input type="submit" value="Echo">
-        </form>
-        
+        </form><br>
+
+        <!-- 手順提示領域 -->
+        <div id="processBox">
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
-            対象の画像:
-            <input multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
+            <b>①画像を選ぶ</b><br>
+            <label class="btn">
+            <i class="far fa-folder-open"> 画像を選択</i>
+            <input style="display:none" multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
+            </label>
         </form>
+        <div class="triangle"></div>
+        </div>
+        <div id="processBox">
         <form>
-            探したい星座:
+            <b>②星座を選ぶ</b><br>
             <select>
                 <option value="sagittarius">いて座</option>
             </select>
         </form>
-        <form id="toServer">
-            <input type="submit" value="Send">
-        </form>
-        <div id="imagecontainer" class="clearfix">
-            <div id="thumbnail">
-                    <p>
-                        ここに画像が表示されます
-                    </p>
-                </div>
-            <div id="result">
-                    <p>
-                        ここに画像が表示されます
-                    </p>
-            </div>
+        <div class="triangle"></div>
         </div>
+        <div id="processBox">
+        <form id="toServer">
+            <b>③探す</b><br>
+            <input type="submit" class="btn" value="星座をみつける">
+        </form>
+        </div>
+        
+        <!-- 画像表示領域 -->
+        <div id="imageBox">
+                <p>
+                    ここに画像が表示されます
+                </p>
+        </div>
+        
+        <div id="imageBox">
+                <p>
+                    ここに画像が表示されます
+                </p>
+        </div>
+
+        <!-- 進行度表示領域 -->
         <p>
-            Send Progress  : <progress value=0 id="sendBar" max=100></progress><br>
-            Search Progress: <progress value=0 id="searchBar" max=119></progress><br>
+            Send Progress  : <progress class="progressbar" value=0 id="sendBar" max=100></progress><br>
+            Search Progress: <progress class="progressbar" value=0 id="searchBar" max=119></progress><br>
         </p>
+        
         <div id="log"></div>
     </body>
 </html>

@@ -88,6 +88,13 @@ def detect_stars(image):
         astars.append(stars[r_areas_arg[i]])
     #print("threashold:",thr)
     #print("len:",len(astars))
+    """
+    tmp = image.copy()
+    for star in astars:
+        cv2.circle(tmp, (star[0][0],star[0][1]), 2, (0,0,255), -1, cv2.LINE_AA)
+    cv2.imshow("finalcnt", scale_down(tmp, max(tmp.shape[0], tmp.shape[1])/SIZE))
+    cv2.waitKey(1)
+    """
     return astars
 
 def on_mouse(event, x, y, flag, param):
@@ -163,6 +170,7 @@ def draw_line(img, stars, constellation):
                     trac_constellation(True, img, p1, p1-std, std, d1, stars, C)
                     return
                 elif l_c < 2 or star_count > C["N"]:
+                    print(l_c)
                     stella_count += 1
                     stella_data.append([p1, p1-std, std, d1])
                     like_list.append(l_c)
@@ -291,16 +299,18 @@ def trace(cv2img, constellation, sock):
     """外部から使うための関数"""
     global socket
     socket = sock
+    # TODO:星の写真かどうかの判定
     stars = detect_stars(cv2img)
     emit('my_response', {"data": "detected stars from image"})
     sock.sleep(0)
     draw_line(cv2img, stars, constellation.get())
+    # TODO:途中で終わった時
     #cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)
     return cv2img
 
 if __name__ == '__main__':
     start = time.time()
-    IMAGE_FILE = "1614" #スピード:test < 1618 <= 1614 << 1916
+    IMAGE_FILE = "0038" #スピード:test < 1618 <= 1614 << 1916
     f = "..\\stardust\\source\\" + IMAGE_FILE + ".JPG"
     img = cv2.imread(f)
     cs = Constellation.Sagittarius()

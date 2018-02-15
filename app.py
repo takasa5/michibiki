@@ -12,35 +12,6 @@ import time
 data_buffer = {}
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode="eventlet")
-
-def sleeper():
-    while True:
-        time.sleep(1)
-        socketio.emit("message", "dummy", namespace="/test")
-        socketio.sleep(0)
-
-def background(message):
-    pass
-    #print(message['data'])
-    #ret = msgpack.unpackb(message['data'])
-    #print(ret)
-    """
-    img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
-    socketio.emit('my_response', {'data': "changed to data"}, namespace="/test")
-    socketio.sleep(0)
-    
-    traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
-    socketio.emit('my_response', {'data': "found constellation"}, namespace="/test")
-    socketio.sleep(0)
-
-    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
-    sbuf = BytesIO()
-    pil_img.save(sbuf, format='JPEG')
-    sbuf = sbuf.getvalue()
-    encode_img = base64.b64encode(sbuf)
-
-    socketio.emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")}, namespace="/test")
-    """
     
 @app.route('/')
 def index():
@@ -51,10 +22,6 @@ def test_connect():
     print("connect:"+request.sid)
     #socketio.start_background_task(target=sleeper)
     emit('my_response', {'data': "conecting..."})
-
-@socketio.on('my_ping', namespace='/test')
-def ping_pong():
-    emit('my_pong')
 
 @socketio.on('my_event', namespace='/test')
 def test_message(message):
@@ -84,18 +51,20 @@ def recv_cont(message):
 def recv_end(message):
     global data_buffer
     print("len:", len(data_buffer))
+    #??????????????
     img = readb64(data_buffer[request.sid].split("data:image/jpeg;base64,")[1])
     del data_buffer[request.sid]
+    #?????
+    # TODO:?????????
     traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
     emit('my_response', {'data': "found constellation"})
     socketio.sleep(0)
-
+    #??->base64
     pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
     sbuf = BytesIO()
     pil_img.save(sbuf, format='JPEG')
     sbuf = sbuf.getvalue()
     encode_img = base64.b64encode(sbuf)
-    #100~101????????
 
     emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")})
     print("finish!")
