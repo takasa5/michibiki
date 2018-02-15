@@ -20,6 +20,7 @@
     
                 var b64arr = [];
                 thumb.addEventListener('load', function() {
+                    //$("#thumbnail").children("img").attr("src", thumb.result);
                     $("#thumbnail").html('<img src="'+thumb.result+'">');
                     b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 100));
                     console.log("b64arr length:"+b64arr.length);
@@ -82,8 +83,11 @@
                 });
                 $("form#toServer").submit(function(event) {
                     if (thumb.result == null) {
-                        alert("ファイルを指定してください");
-                    }else {
+                        alert("画像を指定してください");
+                    } else if (hostname.disconnected == true) {
+                        //うまくできない
+                        alert("サーバーとの接続に失敗しました\nページを再読み込みしてください");
+                    } else {
                         console.log(thumb.result.length)
                         $(".progressbar").val(0);
                         $("#log").append('<br>' + $('<div/>').text("send").html());
@@ -144,7 +148,7 @@
             transform: translateY(4px);
             border-bottom: none;
         }
-        #processBox {
+        .processBox {
             display: inline-block;
             margin: 12px;
             position: relative;
@@ -165,7 +169,8 @@
             border-top: 50px solid transparent;
             border-bottom: 50px solid transparent;
         }
-        #imageBox {
+        .imageBox {
+            position: relative;
             display: inline-block;
             background-color: lightcyan;
             padding: 10px;
@@ -175,14 +180,26 @@
             border-top: solid 5px  rgb(55, 124, 189);
             text-align: center;
         }
+        /*
         .clearfix:after {
             clear: both;
             content: "";
             display: block;
+        }*/
+        .imageBox p {
+            position: absolute;
+            left: 50%;
+            top: 45%;
+            transform: translate(-50%, -45%);
+            white-space: nowrap;
         }
-        img {
+        .imageBox img {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
             width: 90%;
-            height: 300px;
+            height: 95%;
             object-fit: contain;
         }
         </style>
@@ -197,7 +214,7 @@
         </form><br>
 
         <!-- 手順提示領域 -->
-        <div id="processBox">
+        <div class="processBox">
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
             <b>①画像を選ぶ</b><br>
             <label class="btn">
@@ -207,7 +224,7 @@
         </form>
         <div class="triangle"></div>
         </div>
-        <div id="processBox">
+        <div class="processBox">
         <form>
             <b>②星座を選ぶ</b><br>
             <select>
@@ -216,7 +233,7 @@
         </form>
         <div class="triangle"></div>
         </div>
-        <div id="processBox">
+        <div class="processBox">
         <form id="toServer">
             <b>③探す</b><br>
             <input type="submit" class="btn" value="星座をみつける">
@@ -224,16 +241,11 @@
         </div>
         
         <!-- 画像表示領域 -->
-        <div id="imageBox">
-                <p>
-                    ここに画像が表示されます
-                </p>
-        </div>
-        
-        <div id="imageBox">
-                <p>
-                    ここに画像が表示されます
-                </p>
+        <div id="thumbnail" class="imageBox">
+            <p>ここに画像が表示されます</p>
+        </div>   
+        <div id="result" class="imageBox">
+            <p>ここに画像が表示されます</p>
         </div>
 
         <!-- 進行度表示領域 -->

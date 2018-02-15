@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import cv2
 import numpy as np
 import base64
@@ -33,7 +34,7 @@ def test_image(message):
     print("recv")
     emit('my_response', {'data': "received image"})
     socketio.sleep(0)
-    socketio.start_background_task(background, message)
+    #socketio.start_background_task(background, message)
 
 @socketio.on('data_start', namespace='/test')
 def recv_start(message):
@@ -51,15 +52,15 @@ def recv_cont(message):
 def recv_end(message):
     global data_buffer
     print("len:", len(data_buffer))
-    #??????????????
+    #画像読み込み
     img = readb64(data_buffer[request.sid].split("data:image/jpeg;base64,")[1])
     del data_buffer[request.sid]
-    #?????
-    # TODO:?????????
+    #星座追跡
+    # TODO:星座かの判断
     traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
     emit('my_response', {'data': "found constellation"})
     socketio.sleep(0)
-    #??->base64
+    #画像->base64
     pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
     sbuf = BytesIO()
     pil_img.save(sbuf, format='JPEG')
