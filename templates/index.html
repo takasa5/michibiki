@@ -21,12 +21,15 @@
                 var b64arr = [];
                 thumb.addEventListener('load', function() {
                     //$("#thumbnail").children("img").attr("src", thumb.result);
-                    $("#thumbnail").html('<img src="'+thumb.result+'">');
+                    if ($("#thumbnail > img").length) {
+                        $("#thumbnail > img").remove();
+                    }
+                    $("#thumbnail").append('<img src="'+thumb.result+'">');
                     b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 100));
                     console.log("b64arr length:"+b64arr.length);
                     console.log("[] length:"+b64arr[0].length);
                 });
-
+                
                 if (window.File && window.FileReader) {
                     console.log("File API is available");
                 }else{console.log("File API is NOT available");}
@@ -55,7 +58,11 @@
                 socket.on('return_image', function(msg) {
                     console.log("image received");
                     console.log(msg.data)
-                    $("#result").html('<img src="'+msg.data+'">');
+                    //$("#result").html('<img src="'+msg.data+'">');
+                    if ($("#result > img").length) {
+                        $("#result > img").remove();
+                    }
+                    $("#result").append('<img src="'+msg.data+'">');
                 });
                 //分割データ受信
                 socket.on('require_data', function(msg) {
@@ -96,6 +103,20 @@
                         return false;
                     }
                 });
+                //モーダルウインドウ
+                $(".openModal").click(function() {
+                    var navClass = $(this).attr("class"),
+                        href = $(this).attr("href");
+
+                        $(href).fadeIn();
+                    $(this).addClass("open");
+                    return false;
+                });
+                $(".overLay").click(function(){
+                    $(this).parents(".modal").fadeOut();
+                    $(".openModal").removeClass("open");
+                    return false;
+                });
             });
             function lsplit(str, length) {
                 var resultArr = [];
@@ -115,6 +136,9 @@
             }
         </script>
         <style type="text/css">
+        body {
+            position: relative;
+        }
         #title {
             font-weight: bold;
             font-size: 3em;
@@ -135,7 +159,7 @@
         }
         .btn {
             display: inline-block;
-            padding: 0.5em 1em;
+            padding: 0.8em 1em;
             text-decoration: none;
             background: rgb(55, 124, 189);
             color: #FFF;
@@ -147,6 +171,9 @@
         .btn:active {
             transform: translateY(4px);
             border-bottom: none;
+        }
+        #helpButton {
+            cursor: pointer;
         }
         .processBox {
             display: inline-block;
@@ -179,13 +206,8 @@
             height: 300px;
             border-top: solid 5px  rgb(55, 124, 189);
             text-align: center;
+            overflow: hidden;            
         }
-        /*
-        .clearfix:after {
-            clear: both;
-            content: "";
-            display: block;
-        }*/
         .imageBox p {
             position: absolute;
             left: 50%;
@@ -202,50 +224,101 @@
             height: 95%;
             object-fit: contain;
         }
+        .imageBox div {
+            position: absolute;
+            font-size: 5em;
+            font-weight: bold;
+            line-height: 100%;
+            transform: translateY(10px);
+            bottom: 0%;
+            left: 0%;
+            color: rgba(0, 0, 0, 0.2);
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+        }
+        .modal {
+            position: absolute;
+            width: 100%;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        .overLay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: rgba(200, 200, 200, 0.9);
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        .modal .inner {
+            position: absolute;
+            height: 80%;
+            width: 60%;
+            z-index: 11;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #FFF;
+            padding: 1em 2em;
+        }
         </style>
     </head>
     <body>
         <div id="back">
-        <div id="title">Stella-Tracer</div>
+        <div id="title">Stella-Tracer(仮)</div>
+        <a href="#helpModal" class="openModal" style="color: black">
+            <i class="far fa-question-circle fa-lg"></i>
+        </a>
         <form id="emit" method="POST" action='#'>
             デバッグ用:
             <input type="text" name="emit_data" id="emit_data" placeholder="Message">
             <input type="submit" value="Echo">
-        </form><br>
-
+        </form>
         <!-- 手順提示領域 -->
         <div class="processBox">
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
             <b>①画像を選ぶ</b><br>
             <label class="btn">
-            <i class="far fa-folder-open"> 画像を選択</i>
-            <input style="display:none" multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
+                <i class="far fa-folder-open fa-3x"></i>
+                <input style="display:none" multiple type="file" name="image_data" id="image_data" placeholder="ファイルを選択してください" accept="image/jpeg">
             </label>
         </form>
         <div class="triangle"></div>
         </div>
         <div class="processBox">
-        <form>
-            <b>②星座を選ぶ</b><br>
-            <select>
-                <option value="sagittarius">いて座</option>
-            </select>
-        </form>
-        <div class="triangle"></div>
+            <form>
+                <b>②星座を選ぶ</b><br>
+                <select>
+                    <option value="sagittarius">いて座</option>
+                </select>
+            </form>
+            <div class="triangle"></div>
         </div>
         <div class="processBox">
         <form id="toServer">
             <b>③探す</b><br>
-            <input type="submit" class="btn" value="星座をみつける">
+            <label class="btn">
+                <span class="fa-stack" style="width: 3em;height: 3em;">
+                    <i class="fas fa-star fa-stack-1x" style="transform:translate(-3.8px, 1.2px)"></i>
+                    <i class="fas fa-search fa-3x"></i>
+                </span>
+                <input type="submit" style="display:none">
+            </label>
         </form>
         </div>
         
         <!-- 画像表示領域 -->
         <div id="thumbnail" class="imageBox">
             <p>ここに画像が表示されます</p>
+            <div>Before</div>
         </div>   
         <div id="result" class="imageBox">
             <p>ここに画像が表示されます</p>
+            <div>After</div>
         </div>
 
         <!-- 進行度表示領域 -->
@@ -255,5 +328,29 @@
         </p>
         
         <div id="log"></div>
+        <div class="modal" id="helpModal">
+            <div class="overLay modalClose"></div>
+            <div class="inner" style="text-align: left">
+                <!-- はみ出た時 処理-->
+                <div id="usage">
+                    <p><b>使い方</b></p>
+                    <u>①画像を選ぶ</u><br>
+                    ボタンを押して星座をみつけたい星空の写真を選んでください(JPEGのみ)。<br>
+                    <u>②星座を選ぶ</u><br>
+                    ボタンを押すとメニューが開くのでみつけたい星座を選んでください。<br>
+                    <u>③探す</u><br>
+                    ボタンを押すと星座の検出が始まります。けっこう時間がかかるので気長にお待ちください。<br>
+                    画像を作者が無断で保存及び利用することはありません。出力画像は右クリックで保存できます。自由にご利用ください。<br>
+                    <br><br>
+                    星座の検出精度向上・バリエーション追加のため、画像を提供してくださる方を募集しております。
+                </div>
+                <div style="display: absolute; bottom: 0; text-align: center">
+                    <p>&copy; 2018 高砂
+                        <a href="https://twitter.com/takasa_five/" target="_blank"><i class="fab fa-twitter-square fa-lg" style="color: #00aced"></i></a>
+                        <a href="https://github.com/takasa5" target="_blank"><i class="fab fa-github-square fa-lg" style="color: #24292e"></i></a>
+                    </p> 
+                </div>
+            </div>
+        </div>
     </body>
 </html>
