@@ -2,8 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Stella Tracer(test)</title>
+        <title>みちびき(仮)</title>
+        <link rel="icon" sizes="any" href="./m_ico.svg" type="image/svg+xml">
         <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
+        <link href="index.css" rel="stylesheet">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
         <!--
@@ -14,270 +16,23 @@
         <!--
         <script type="text/javascript" src="msgpack.min.js"></script>
         -->
-        <script type="text/javascript">
-            $(document).ready(function() {
-                var thumb = new FileReader();
-    
-                var b64arr = [];
-                thumb.addEventListener('load', function() {
-                    //$("#thumbnail").children("img").attr("src", thumb.result);
-                    if ($("#thumbnail > img").length) {
-                        $("#thumbnail > img").remove();
-                    }
-                    $("#thumbnail").append('<img src="'+thumb.result+'">');
-                    b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 100));
-                    console.log("b64arr length:"+b64arr.length);
-                    console.log("[] length:"+b64arr[0].length);
-                });
-                
-                if (window.File && window.FileReader) {
-                    console.log("File API is available");
-                }else{console.log("File API is NOT available");}
-
-                namespace = '/test';
-                var hostname = document.location.hostname;
-                console.log("hostname:"+hostname);
-                if (hostname == "localhost" || hostname == "127.0.0.1" || hostname == "") {
-                    var socket = io('http://127.0.0.1:5000' + namespace);
-                } else {
-                    var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-                }
-                console.log(socket);
-                
-                socket.on('connect', function() {
-                    console.log("connect");
-                    $(".progressbar").val(0);
-                    socket.emit('my_event', {data: "Checked connection"});
-                });
-                socket.on('my_response', function(msg) {
-                    $("#log").append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
-                });
-                socket.on('message', function() {
-                    console.log("message");
-                });
-                socket.on('return_image', function(msg) {
-                    console.log("image received");
-                    console.log(msg.data)
-                    //$("#result").html('<img src="'+msg.data+'">');
-                    if ($("#result > img").length) {
-                        $("#result > img").remove();
-                    }
-                    $("#result").append('<img src="'+msg.data+'">');
-                });
-                //分割データ受信
-                socket.on('require_data', function(msg) {
-                    if (msg.index == b64arr.length) {
-                        socket.emit('data_end', {data: ""});
-                        $("#log").append('<br>' + $('<div/>').text("finish sending").html());
-                    }else{
-                        $("#sendBar").val(msg.index)
-                        socket.emit('data_cont', {data: b64arr[msg.index], index: msg.index});
-                    }
-                });
-
-                socket.on('searching', function(msg){
-                    $("#searchBar").val(msg.data)
-                });
-
-                $('form#emit').submit(function(event) {
-                    console.log("pushed");
-                    socket.emit('my_event', {data: $('#emit_data').val()});
-                    return false;
-                });
-                $('#image_data').change(function(){
-                    //reader.readAsArrayBuffer(this.files[0]);
-                    thumb.readAsDataURL(this.files[0]);
-                });
-                $("form#toServer").submit(function(event) {
-                    if (thumb.result == null) {
-                        alert("画像を指定してください");
-                    } else if (hostname.disconnected == true) {
-                        //うまくできない
-                        alert("サーバーとの接続に失敗しました\nページを再読み込みしてください");
-                    } else {
-                        console.log(thumb.result.length)
-                        $(".progressbar").val(0);
-                        $("#log").append('<br>' + $('<div/>').text("send").html());
-                        //socket.emit('my_image', {data: buf});
-                        socket.emit('data_start', {data: b64arr[0], index: 0});
-                        return false;
-                    }
-                });
-                //モーダルウインドウ
-                $(".openModal").click(function() {
-                    var navClass = $(this).attr("class"),
-                        href = $(this).attr("href");
-
-                        $(href).fadeIn();
-                    $(this).addClass("open");
-                    return false;
-                });
-                $(".overLay").click(function(){
-                    $(this).parents(".modal").fadeOut();
-                    $(".openModal").removeClass("open");
-                    return false;
-                });
-            });
-            function lsplit(str, length) {
-                var resultArr = [];
-                if (!str || !length || length < 1) {
-                    return resultArr;
-                }
-                var index = 0;
-                var start = index;
-                var end = start + length;
-                while (start < str.length) {
-                    resultArr[index] = str.substring(start, end);
-                    index++;
-                    start = end;
-                    end = start + length;
-                }
-                return resultArr;
-            }
-        </script>
-        <style type="text/css">
-        body {
-            position: relative;
-        }
-        #title {
-            font-weight: bold;
-            font-size: 3em;
-        }
-        @media screen and (max-width: 959px) {
-            #back {
-                width: 100%;
-                text-align: center;
-                margin: 0 auto;
-            }
-        }
-        @media screen and (min-width: 960px) {
-            #back {
-                width: 70%;
-                text-align: center;
-                margin: 0 auto;
-            }
-        }
-        .btn {
-            display: inline-block;
-            padding: 0.8em 1em;
-            text-decoration: none;
-            background: rgb(55, 124, 189);
-            color: #FFF;
-            border-bottom: solid 4px rgb(43, 93, 141);
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-        .btn:active {
-            transform: translateY(4px);
-            border-bottom: none;
-        }
-        #helpButton {
-            cursor: pointer;
-        }
-        .processBox {
-            display: inline-block;
-            margin: 12px;
-            position: relative;
-            width: 25%;
-            height: 100px;
-            background: rgb(241, 230, 132);
-            text-align: center;
-            vertical-align: middle;
-        }
-        .triangle {
-            position: absolute;
-            top: 0px;
-            left: 100%;
-            width: 0;
-            height: 0;
-            background: transparent;
-            border-left: 30px solid rgb(241, 230, 132);
-            border-top: 50px solid transparent;
-            border-bottom: 50px solid transparent;
-        }
-        .imageBox {
-            position: relative;
-            display: inline-block;
-            background-color: lightcyan;
-            padding: 10px;
-            margin: 5px;
-            width: 40%;
-            height: 300px;
-            border-top: solid 5px  rgb(55, 124, 189);
-            text-align: center;
-            overflow: hidden;            
-        }
-        .imageBox p {
-            position: absolute;
-            left: 50%;
-            top: 45%;
-            transform: translate(-50%, -45%);
-            white-space: nowrap;
-        }
-        .imageBox img {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            height: 95%;
-            object-fit: contain;
-        }
-        .imageBox div {
-            position: absolute;
-            font-size: 5em;
-            font-weight: bold;
-            line-height: 100%;
-            transform: translateY(10px);
-            bottom: 0%;
-            left: 0%;
-            color: rgba(0, 0, 0, 0.2);
-            user-select: none;
-            -moz-user-select: none;
-            -webkit-user-select: none;
-        }
-        .modal {
-            position: absolute;
-            width: 100%;
-            height: 100vh;
-            top: 0;
-            left: 0;
-            display: none;
-        }
-        .overLay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: rgba(200, 200, 200, 0.9);
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-        }
-        .modal .inner {
-            position: absolute;
-            height: 80%;
-            width: 60%;
-            z-index: 11;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #FFF;
-            padding: 1em 2em;
-        }
-        </style>
+        <script type="text/javascript" src="client.js"></script>
     </head>
     <body>
         <div id="back">
-        <div id="title">Stella-Tracer(仮)</div>
+        <!--<div id="title">Stella-Tracer(仮)</div>-->
+        <img id="title" src="m_logo.svg" alt="みちびき">
         <a href="#helpModal" class="openModal" style="color: black">
             <i class="far fa-question-circle fa-lg"></i>
         </a>
+        <!--
         <form id="emit" method="POST" action='#'>
             デバッグ用:
             <input type="text" name="emit_data" id="emit_data" placeholder="Message">
             <input type="submit" value="Echo">
         </form>
+        -->
+        <br>
         <!-- 手順提示領域 -->
         <div class="processBox">
         <form id="image" method="POST" action="#" enctype="multipart/form-data">
