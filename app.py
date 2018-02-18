@@ -54,6 +54,7 @@ def recv_end(message):
     print("len:", len(data_buffer))
     #画像読み込み
     img = readb64(data_buffer[request.sid].split("data:image/jpeg;base64,")[1])
+    #img = readb64(message['data'].split("data:image/jpeg;base64,")[1])
     del data_buffer[request.sid]
     #星座追跡
     # TODO:星座かの判断

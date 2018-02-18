@@ -8,7 +8,7 @@ $(document).ready(function() {
             $("#thumbnail > img").remove();
         }
         $("#thumbnail").append('<img src="'+thumb.result+'">');
-        b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 100));
+        b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 10));
         console.log("b64arr length:"+b64arr.length);
         console.log("[] length:"+b64arr[0].length);
     });
@@ -83,6 +83,7 @@ $(document).ready(function() {
             $("#log").append('<br>' + $('<div/>').text("send").html());
             //socket.emit('my_image', {data: buf});
             socket.emit('data_start', {data: b64arr[0], index: 0});
+            //socket.emit('data_end', {data: thumb.result})
             return false;
         }
     });
