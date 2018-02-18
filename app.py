@@ -8,6 +8,7 @@ from PIL import Image
 from io import BytesIO
 import Constellation
 import stardust
+import gmail_send
 import time
 
 data_buffer = {}
@@ -16,7 +17,11 @@ socketio = SocketIO(app, async_mode="eventlet")
     
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', title="みちびき(仮)")
+
+@app.route('/send_message')
+def send_message_page():
+    return render_template('sender.html', title="報告フォーム - みちびき(仮)")
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -70,6 +75,13 @@ def recv_end(message):
 
     emit('return_image', {'data': "data:image/jpeg;base64,"+encode_img.decode("utf-8")})
     print("finish!")
+
+@socketio.on('content_push', namespace="/test")
+def recv_content(message):
+    print("data received")
+    img = base64.b64decode(message['image'].split("data:image/jpeg;base64,")[1])
+    gmail_send.send_to_gmail(request.sid, message['content'], img, message['image_name'])
+
 
 def readb64(b64_str):
     sbuf = BytesIO()

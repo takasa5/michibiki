@@ -1,5 +1,6 @@
 $(document).ready(function() {
     var thumb = new FileReader();
+    var sender = new FileReader();
 
     var b64arr = [];
     thumb.addEventListener('load', function() {
@@ -12,6 +13,7 @@ $(document).ready(function() {
         console.log("b64arr length:"+b64arr.length);
         console.log("[] length:"+b64arr[0].length);
     });
+    
     
     if (window.File && window.FileReader) {
         console.log("File API is available");
@@ -84,19 +86,35 @@ $(document).ready(function() {
             //socket.emit('my_image', {data: buf});
             socket.emit('data_start', {data: b64arr[0], index: 0});
             //socket.emit('data_end', {data: thumb.result})
-            return false;
         }
+        return false;        
+    });
+
+    //sender.html
+    var contentImageName;
+    $("#content > #content_image").change(function() {
+        sender.readAsDataURL(this.files[0]);
+        contentImageName = this.files[0].name;
+    });
+    $("form#content").submit(function(event) {
+        var text = $(this).children("#content_message").val();
+       if (text == "") {
+           alert("1を入力してください");
+       }else{
+            console.log(contentImageName);
+            socket.emit('content_push', {content: text, image: sender.result, image_name: contentImageName});
+       }
+       return false;
     });
     //モーダルウインドウ
     $(".openModal").click(function() {
         var navClass = $(this).attr("class"),
             href = $(this).attr("href");
-
             $(href).fadeIn();
         $(this).addClass("open");
         return false;
     });
-    $(".overLay").click(function(){
+    $(".overLay, #here").click(function(){
         $(this).parents(".modal").fadeOut();
         $(".openModal").removeClass("open");
         return false;

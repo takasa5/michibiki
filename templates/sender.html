@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block content %}
+<br><br>
+<b style="font-size: 1em">報告フォーム</b>
+<br><br>
+<form id="content" style="position:absolute; left:26%; width: 50%">
+    <div style="text-align:left">
+            1. メッセージを送る理由(画像提供、バグの報告、ご要望など)をご記入ください。<br>
+    </div>
+    <textarea id="content_message" cols="100"></textarea>
+    <br><br>
+    <div style="text-align:left">
+        2. 画像を添付する場合は以下のフォームをご利用ください。.jpgと.zipをサポートしています。それ以外の場合お手数ですがアップローダやクラウドなど外部サービスをご利用ください。<br>
+    </div>
+    <input multiple type="file" id="content_image" placeholder="ファイルを選択してください" accept="image/jpeg, application/zip">
+    <br><br><br>
+    <input type="submit" id="content_send">
+</form>
+{% endblock %}

@@ -128,3 +128,11 @@ body {
     overflow: scroll;
     overflow-x: visible;
 }
+#titleLogo {
+    text-decoration: none;
+}
+#content_message {
+    width: 50%;
+    height: 150px;
+    resize: none;
+} 
