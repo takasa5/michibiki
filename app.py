@@ -8,11 +8,13 @@ from PIL import Image
 from io import BytesIO
 import Constellation
 import stardust
-import gmail_send
+import my_email_sender
 import time
+import os
 
 data_buffer = {}
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode="eventlet")
     
 @app.route('/')
@@ -25,8 +27,6 @@ def send_message_page():
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
-    print("connect:"+request.sid)
-    #socketio.start_background_task(target=sleeper)
     emit('my_response', {'data': "conecting..."})
 
 @socketio.on('my_event', namespace='/test')
@@ -39,7 +39,6 @@ def test_image(message):
     print("recv")
     emit('my_response', {'data': "received image"})
     socketio.sleep(0)
-    #socketio.start_background_task(background, message)
 
 @socketio.on('data_start', namespace='/test')
 def recv_start(message):
@@ -78,10 +77,15 @@ def recv_end(message):
 
 @socketio.on('content_push', namespace="/test")
 def recv_content(message):
-    print("data received")
-    img = base64.b64decode(message['image'].split("data:image/jpeg;base64,")[1])
-    gmail_send.send_to_gmail(request.sid, message['content'], img, message['image_name'])
-
+    print(message.keys())
+    if message["image"] is not None:
+        img = base64.b64decode(message['image'].split("data:image/jpeg;base64,")[1])
+    else:
+        img = None
+    my_email_sender.send_message(my_email_sender.create_message(
+        request.sid,
+        message["content"],
+        {"name": message["image_name"], "file": img} ))
 
 def readb64(b64_str):
     sbuf = BytesIO()

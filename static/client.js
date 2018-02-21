@@ -101,6 +101,10 @@ $(document).ready(function() {
        if (text == "") {
            alert("1を入力してください");
        }else{
+            if (sender.result == undefined) {
+                sender.result = null;
+                contentImageName = null;
+            }
             console.log(contentImageName);
             socket.emit('content_push', {content: text, image: sender.result, image_name: contentImageName});
        }
