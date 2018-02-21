@@ -12,6 +12,7 @@ PASSWORD = os.environ.get("GOOGLE_PASS", None)
 
 def create_message(subject, content, file):
     """file = {"name", "file"}"""
+    print("create_message")
     msg = MIMEMultipart()
     msg["Subject"] = subject
     msg["From"] = ACCOUNT
@@ -30,7 +31,7 @@ def create_message(subject, content, file):
     return msg
 
 def send_message(message):
-
+    print("send_message")
     s = smtplib.SMTP_SSL("smtp.gmail.com")
     s.login(ACCOUNT, PASSWORD)
 

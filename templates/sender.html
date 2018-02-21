@@ -14,6 +14,9 @@
     </div>
     <input multiple type="file" id="content_image" placeholder="ファイルを選択してください" accept="image/jpeg, application/zip">
     <br><br><br>
-    <input type="submit" id="content_send">
+    <input type="submit" id="content_send"><br>
+    <div class="loading" style="display:none">ファイルサイズが大きい場合時間がかかることがあります。<br>しばらくお待ちください...</div>
+    <div class="loader loading" style="display:none"></div>
+    
 </form>
 {% endblock %}

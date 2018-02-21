@@ -11,6 +11,8 @@ import stardust
 import my_email_sender
 import time
 import os
+import eventlet
+eventlet.monkey_patch(socket=True, select=True)
 
 data_buffer = {}
 app = Flask(__name__)
@@ -77,15 +79,25 @@ def recv_end(message):
 
 @socketio.on('content_push', namespace="/test")
 def recv_content(message):
+    """送信フォームからのメッセージ受信"""
+    emit("reaction")
+    socketio.sleep(0)
     print(message.keys())
+    message["sid"] = request.sid
+    emit("send_complete")
+    socketio.start_background_task(target=background_send, message=message)
+
+def background_send(message):
     if message["image"] is not None:
         img = base64.b64decode(message['image'].split("data:image/jpeg;base64,")[1])
     else:
         img = None
+    print("background_send")
     my_email_sender.send_message(my_email_sender.create_message(
-        request.sid,
+        message["sid"],
         message["content"],
         {"name": message["image_name"], "file": img} ))
+    socketio.sleep(0)
 
 def readb64(b64_str):
     sbuf = BytesIO()

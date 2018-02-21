@@ -90,26 +90,6 @@ $(document).ready(function() {
         return false;        
     });
 
-    //sender.html
-    var contentImageName;
-    $("#content > #content_image").change(function() {
-        sender.readAsDataURL(this.files[0]);
-        contentImageName = this.files[0].name;
-    });
-    $("form#content").submit(function(event) {
-        var text = $(this).children("#content_message").val();
-       if (text == "") {
-           alert("1を入力してください");
-       }else{
-            if (sender.result == undefined) {
-                sender.result = null;
-                contentImageName = null;
-            }
-            console.log(contentImageName);
-            socket.emit('content_push', {content: text, image: sender.result, image_name: contentImageName});
-       }
-       return false;
-    });
     //モーダルウインドウ
     $(".openModal").click(function() {
         var navClass = $(this).attr("class"),
@@ -123,6 +103,33 @@ $(document).ready(function() {
         $(".openModal").removeClass("open");
         return false;
     });
+
+    //sender.html ************************************************************************
+    var contentImageName;
+    $("#content > #content_image").change(function() {
+        sender.readAsDataURL(this.files[0]);
+        contentImageName = this.files[0].name;
+    });
+    $("form#content").submit(function(event) {
+        var text = $(this).children("#content_message").val();
+       if (text == "") {
+           alert("1を入力してください");
+       }else{
+            $(".loading").fadeIn();
+            if (sender.result == undefined) {
+                sender.result = null;
+                contentImageName = null;
+            }
+            console.log(contentImageName);
+            socket.emit('content_push', {content: text, image: sender.result, image_name: contentImageName});
+       }
+       return false;
+    });
+    socket.on("send_complete", function(msg){
+        $(".loading").fadeOut();
+        alert("メッセージが送信されました。ありがとうございます！");
+    });
+    
 });
 function lsplit(str, length) {
     var resultArr = [];
