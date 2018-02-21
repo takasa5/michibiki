@@ -11,6 +11,7 @@ import stardust
 import my_email_sender
 import time
 import os
+import re
 import eventlet
 eventlet.monkey_patch(socket=True, select=True)
 
@@ -80,24 +81,26 @@ def recv_end(message):
 @socketio.on('content_push', namespace="/test")
 def recv_content(message):
     """送信フォームからのメッセージ受信"""
-    emit("reaction")
-    socketio.sleep(0)
-    print(message.keys())
     message["sid"] = request.sid
     emit("send_complete")
+    socketio.sleep(0)
     socketio.start_background_task(target=background_send, message=message)
 
 def background_send(message):
-    if message["image"] is not None:
-        img = base64.b64decode(message['image'].split("data:image/jpeg;base64,")[1])
+    if message["file"] is not None:
+        splited = re.split("[:;,]", message["file"], 4)
+        #splited[1] <- mimetype / splited[3] <- base64 string
+        print(splited[1])
+        message["mimetype"], message["subtype"] = splited[1].split("/")
+        print(splited[3][:5])
+        message["file"] = base64.b64decode(splited[3])
     else:
-        img = None
+        message["mimetype"], message["subtype"] = None, None
+        message["file"] = None
     print("background_send")
-    my_email_sender.send_message(my_email_sender.create_message(
-        message["sid"],
-        message["content"],
-        {"name": message["image_name"], "file": img} ))
-    socketio.sleep(0)
+    my_email_sender.send_message(my_email_sender.create_message(message))
+    #socketio.sleep(0)
+
 
 def readb64(b64_str):
     sbuf = BytesIO()

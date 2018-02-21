@@ -14,7 +14,6 @@ $(document).ready(function() {
         console.log("[] length:"+b64arr[0].length);
     });
     
-    
     if (window.File && window.FileReader) {
         console.log("File API is available");
     }else{console.log("File API is NOT available");}
@@ -105,10 +104,10 @@ $(document).ready(function() {
     });
 
     //sender.html ************************************************************************
-    var contentImageName;
+    var contentFileName;
     $("#content > #content_image").change(function() {
         sender.readAsDataURL(this.files[0]);
-        contentImageName = this.files[0].name;
+        contentFileName = this.files[0].name;
     });
     $("form#content").submit(function(event) {
         var text = $(this).children("#content_message").val();
@@ -118,10 +117,10 @@ $(document).ready(function() {
             $(".loading").fadeIn();
             if (sender.result == undefined) {
                 sender.result = null;
-                contentImageName = null;
+                contentFileName = null;
             }
-            console.log(contentImageName);
-            socket.emit('content_push', {content: text, image: sender.result, image_name: contentImageName});
+            console.log(sender.result);
+            socket.emit('content_push', {content: text, file: sender.result, file_name: contentFileName});
        }
        return false;
     });
