@@ -25,9 +25,19 @@
 <div class="processBox">
     <form>
         <b>②星座を選ぶ</b><br>
+        <a href="#constellationModal" class="openModal">
+        <label class="btn">
+            <span class="fa-stack" style="width: 3em;height: 3em;">
+                <i class="fas fa-star fa-stack-1x" style="transform:translate(-10px, -5px)"></i>
+                <i class="fas fa-mouse-pointer fa-2x" style="transform:translate(6px, 15px)"></i>
+            </span>
+        </label>
+        </a>
+        <!--
         <select>
             <option value="sagittarius">いて座</option>
         </select>
+        -->
     </form>
     <div class="triangle"></div>
 </div>
@@ -61,6 +71,12 @@
 </p>
 
 <div id="log"></div>
+<div class="modal" id="constellationModal">
+    <div class="overLay modalClose"></div> 
+    <div class="inner">
+        
+    </div>
+</div>
 <div class="modal" id="helpModal">
     <div class="overLay modalClose"></div>
     <div class="inner" style="text-align: left">

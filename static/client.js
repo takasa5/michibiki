@@ -97,7 +97,7 @@ $(document).ready(function() {
         $(this).addClass("open");
         return false;
     });
-    $(".overLay, #here").click(function(){
+    $(".overLay").click(function(){
         $(this).parents(".modal").fadeOut();
         $(".openModal").removeClass("open");
         return false;
