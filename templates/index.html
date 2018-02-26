@@ -26,7 +26,7 @@
     <form>
         <b>②星座を選ぶ</b><br>
         <a href="#constellationModal" class="openModal">
-        <label class="btn">
+        <label class="btn" id="selectConstellation" style="width: 3em;height: 3em;">
             <span class="fa-stack" style="width: 3em;height: 3em;">
                 <i class="fas fa-star fa-stack-1x" style="transform:translate(-10px, -5px)"></i>
                 <i class="fas fa-mouse-pointer fa-2x" style="transform:translate(6px, 15px)"></i>
@@ -72,13 +72,16 @@
 
 <div id="log"></div>
 <div class="modal" id="constellationModal">
-    <div class="overLay modalClose"></div> 
+    <div class="overLay"></div> 
     <div class="inner">
-        
+        <div class="constellationList" id="sagittarius">
+            <img src="/static/sagittarius.svg" alt="いて座">
+            <span>いて座<br>Sagittarius</span>
+        </div>
     </div>
 </div>
 <div class="modal" id="helpModal">
-    <div class="overLay modalClose"></div>
+    <div class="overLay"></div>
     <div class="inner" style="text-align: left">
         <div id="usage">
             <p><b>星座検出アプリ「みちびき(Michibiki)」使い方</b></p>

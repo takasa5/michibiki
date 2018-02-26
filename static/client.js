@@ -102,6 +102,26 @@ $(document).ready(function() {
         $(".openModal").removeClass("open");
         return false;
     });
+    $(".constellationList").click(function(){
+        id = $(this).attr("id");
+        $("#selectConstellation").empty().append(
+            "<img id=\"tmpConstellation\" src=\"/static/" + id + ".svg\" style=\"object-fit:contain\">");
+        deSVG('#tmpConstellation', true);
+        $(this).parents(".modal").fadeOut();
+        $(".openModal").removeClass("open");
+        return false;
+    });
+    $(".constellationList").hover(function() {
+        $(this).children("span").fadeIn();
+        $(this).children("img").animate({
+            opacity: 0.5
+        });
+    }, function() {
+        $(this).children("span").fadeOut();
+        $(this).children("img").animate({
+            opacity: 1
+        });
+    })
 
     //sender.html ************************************************************************
     var contentFileName;
