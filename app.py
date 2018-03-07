@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import base64
 from flask import Flask, render_template, request, copy_current_request_context
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit
 from PIL import Image
 from io import BytesIO
 import Constellation
@@ -65,8 +65,11 @@ def recv_end(message):
         img = readb64(data_buffer[request.sid].split("data:image/jpeg;base64,")[1])
         del data_buffer[request.sid]
         #星座追跡
-        # TODO:星座かの判断
-        traced_img = stardust.trace(img, Constellation.Sagittarius(), socketio)
+        # TODO:星景写真かどうかの判定
+        if message["cst"] in ["sagittarius"]:
+            cst = Constellation.Sagittarius()
+        # ここに他の星座を追加 ていうかもっとスマートにする
+        traced_img = stardust.trace(img, cst, socketio)
         emit('my_response', {'data': "found constellation"})
         socketio.sleep(0)
         #画像->base64

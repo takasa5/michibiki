@@ -1,7 +1,7 @@
 $(document).ready(function() {
     var thumb = new FileReader();
     var sender = new FileReader();
-
+    var tgt_cst = null;
     var b64arr = [];
     thumb.addEventListener('load', function() {
         //$("#thumbnail").children("img").attr("src", thumb.result);
@@ -51,7 +51,7 @@ $(document).ready(function() {
     //分割データ受信
     socket.on('require_data', function(msg) {
         if (msg.index == b64arr.length) {
-            socket.emit('data_end', {data: ""});
+            socket.emit('data_end', {cst: tgt_cst});
             $("#log").append('<br>' + $('<div/>').text("finish sending").html());
         }else{
             $("#sendBar").val(msg.index)
@@ -75,11 +75,12 @@ $(document).ready(function() {
     $("form#toServer").submit(function(event) {
         if (thumb.result == null) {
             alert("画像を指定してください");
-        } else if (hostname.disconnected == true) {
+        } else if (tgt_cst == null) {
+            alert("星座を指定してください"); 
+        }else if (hostname.disconnected == true) {
             //うまくできない
             alert("サーバーとの接続に失敗しました\nページを再読み込みしてください");
         } else {
-            console.log(thumb.result.length)
             $(".progressbar").val(0);
             $("#log").append('<br>' + $('<div/>').text("send").html());
             //socket.emit('my_image', {data: buf});
@@ -104,6 +105,7 @@ $(document).ready(function() {
     });
     $(".constellationList").click(function(){
         id = $(this).attr("id");
+        tgt_cst = id;
         $("#selectConstellation").empty().append(
             "<img id=\"tmpConstellation\" src=\"/static/" + id + ".svg\" style=\"object-fit:contain\">");
         deSVG('#tmpConstellation', true);
