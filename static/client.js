@@ -139,7 +139,6 @@ $(document).ready(function() {
                 sender.result = null;
                 contentFileName = null;
             }
-            console.log(sender.result);
             socket.emit('content_push', {content: text, file: sender.result, file_name: contentFileName});
        }
        return false;
