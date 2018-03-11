@@ -18,7 +18,7 @@ eventlet.monkey_patch(socket=True, select=True)
 data_buffer = {}
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-socketio = SocketIO(app, async_mode="eventlet", ping_timeout=25, ping_interval=15)
+socketio = SocketIO(app, async_mode="eventlet", ping_timeout=25, ping_interval=1)
     
 @app.route('/')
 def index():
