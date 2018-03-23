@@ -7,7 +7,7 @@ from flask_socketio import SocketIO, emit
 from PIL import Image
 from io import BytesIO
 import Constellation
-import stardust
+from stardust import Stardust
 import my_email_sender
 import time
 import os
@@ -69,7 +69,10 @@ def recv_end(message):
         if message["cst"] in ["sagittarius"]:
             cst = Constellation.Sagittarius()
         # ここに他の星座を追加 ていうかもっとスマートにする
-        traced_img = stardust.trace(img, cst, socketio)
+        #traced_img = stardust.trace(img, cst, socketio)
+        sd = Stardust(img, socket=socketio)
+        sd.draw_line(cst.get())
+        traced_img = sd.get_image()
         emit('my_response', {'data': "found constellation"})
         socketio.sleep(0)
         #画像->base64

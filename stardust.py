@@ -2,332 +2,366 @@
 import numpy as np
 import cv2
 import math, os, sys, time
-import Constellation 
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+import Constellation
+from flask_socketio import emit
 
-END = (2**16, 2**16)
-WHITE = (255, 255, 255)
-LWEIGHT = 1
-CRADIUS = 3
-THREASH = 1000 #画像から検出したいおおよその星の数→光害除去用
 SIZE = 666 #画像サイズ(横)
-ARANGE = 5 #許容角度範囲(±)
-DEPTH = 5 #探索近隣星数上限
-STARSIZE = 120
-star_count = 0
 
-def scale_down(image, scale):
-    hight = image.shape[0]
-    width = image.shape[1]
-    small = cv2.resize(image, (round(width/scale), round(hight/scale)))
-    return small
-
-def darken(image, gamma):
-    """ガンマ補正をかける　gammma < 1で暗くなる"""
-    lut = np.ones((256, 1), dtype='uint8') * 0
-    for i in range(256):
-        lut[i][0] = 255 * pow(float(i) / 255, 1.0 / gamma)
-    image_gamma = cv2.LUT(image, lut)
-    return image_gamma
-
-def detect_stars(image):
-    """最適(？)スレッショルドを設定し、抽出した星座標のリストを返す"""
-    flag = True
-    thr = 250
-    gam, adapt = 1, 1
-    
-    #BIGMODE用処理
-    global CRADIUS, LWEIGHT
-    #if min(img.shape[0], img.shape[1]) > 1600:
-    CRADIUS, LWEIGHT = int(max(image.shape[0], image.shape[1])/250), int(max(image.shape[0], image.shape[1])/1000)
-    
-    #輪郭検出用グレースケール画像生成
-    astars = []
-    img_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    del_img = image.copy()
-    firstflag = True
-    while flag:
-        stars, areas = [], []
-        ret, new = cv2.threshold(img_gray, thr, 255, cv2.THRESH_BINARY)
+class Stardust:
+    def __init__(self, image_name, *, socket=None):
+        if isinstance(image_name, np.ndarray): # 画像が直接渡された場合
+            self.image = image_name
+        else:
+            self.image = cv2.imread(image_name)
+        self.socket = socket
+        self.star_num = 120 # Param:取り出す星の数
+        self.star_depth = 5 # Param:近隣探索数の上限
+        self.angle_depth = 5 # Param:角度誤差の許容範囲(±)
+        self.stars = self.__detect_stars()
+        self.written_img = None
+        self.stars_dist = {"now": np.array([-1, -1])}
         
-        #輪郭検出
-        det_img, contours, hierarchy = cv2.findContours(new, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    def get_image(self):
+        return self.written_img
+
+    def scale_down(self, scale):
+        """入力画像をscale分の1に縮小"""
+        hight = self.image.shape[0]
+        width = self.image.shape[1]
+        small = cv2.resize(self.image, (round(width/scale), round(hight/scale)))
+        #self.image = small
+        return small
+
+    def darken(self, gamma):
+        """ガンマ補正をかける　gammma < 1で暗くなる"""
+        lut = np.ones((256, 1), dtype='uint8') * 0
+        for i in range(256):
+            lut[i][0] = 255 * pow(float(i) / 255, 1.0 / gamma)
+        image_gamma = cv2.LUT(self.image, lut)
+        self.image = image_gamma
+
+    def __detect_stars(self):
+        """最適(？)スレッショルドを設定し、抽出した星座標のリストを返す"""
+        flag = True
+        thr = 250
+        gam, adapt = 1, 1
         
-        if len(contours) < STARSIZE * 3:
-            thr -= 10
-            continue
-
-        #各輪郭から重心および面積を算出
-        for cnt in contours:
-            M = cv2.moments(cnt)
-            areas.append(M['m00'])
-            if M['m00'] != 0:
-                cx = int(M['m10'] / M['m00'])
-                cy = int(M['m01'] / M['m00'])
-                stars.append(np.array([[cx, cy]], dtype='int32'))
-            else:
-                stars.append(np.array([cnt[0][0]], dtype='int32'))
-        maxarea_index = np.argmax(areas)
-        #偏差を求める
-        if firstflag:
-            area_std = np.std(areas)
-            print("std:", area_std)
-            firstflag = False
-        #最大面積が外れ値な場合周辺を見ない
-        if area_std > 100 and areas[maxarea_index] > 2.5 * area_std:
-            cnt = contours[maxarea_index]
-            x, y, w, h = cv2.boundingRect(cnt)
-            del_img = cv2.rectangle(del_img, (x, y), (x+w, y+h), (255, 0, 0), -1)
-            img_gray = cv2.cvtColor(del_img, cv2.COLOR_RGB2GRAY)
-            continue
-
-        flag = False
-
-    #星のうち明るいほうから順にSTARSIZE取り出す
-    r_areas_arg = np.argsort(areas)[::-1]
-    for i in range(STARSIZE):
-        astars.append(stars[r_areas_arg[i]])
-    
-    return astars
-
-def on_mouse(event, x, y, flag, param):
-    """マウスクリック時"""
-    #左クリックで最近傍の星出力
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print("mouse:", x, y, sep=' ', end='\n')
-        print(search_near_star(x, y, 0, param))
-
-def search_near_star(x, y, i, stars):
-    """(x, y)にi番目(0オリジン)に近いものを返す"""
-    if i >= len(stars):
-        print("Can't detect")
-        #sys.exit(1)
-        return np.array([None, None])
-
-    p = np.array([x, y])
-    L = np.array([])
-    for star in stars:
-        L = np.append(L, np.linalg.norm(star-p))
-    index = np.array(L)
-    index = np.argsort(index)
-    return stars[index[i]]
-socket = None
-def draw_line(img, stars, constellation):
-    C = constellation
-    global likelihood
-    global star_count
-    global socket
-
-    print("try to find in " + str(len(stars)) + "stars")
-
-    stella_count = 0
-    stella_data, like_list = [], []
-    sockcnt = 0
-    for star in stars:
-        if socket is not None:
-            #socket.emit('my_response', {"data": "trace:" + str(sockcnt)}, namespace="/test")
-            #socket.emit('searching', {"data": sockcnt}, namespace="/test")
-            emit('searching', {"data": sockcnt})
-            sockcnt += 1
-            socket.sleep(0)
+        #BIGMODE用処理
+        self.c_radius = int(max(self.image.shape[0], self.image.shape[1])/250)
+        self.l_weight = int(max(self.image.shape[0], self.image.shape[1])/1000)
         
-        star_count = 1
-        std = np.array([star[0][0], star[0][1]])
-        i = 1
-        while True:
-            #2番目の星候補
-            p1 = search_near_star(std[0], std[1], i, stars)[0]
-            d1 = np.linalg.norm(std-p1)
+        #輪郭検出用グレースケール画像生成
+        img_gray = cv2.cvtColor(self.image, cv2.COLOR_RGB2GRAY)
+        del_img = self.image.copy()
+        firstflag = True
+        while flag:
+            stars, areas = [], []
+            ret, new = cv2.threshold(img_gray, thr, 255, cv2.THRESH_BINARY)
+            # DEBUG
+            # cv2.imshow("gray", self.scale_down(max(new.shape[0], new.shape[1])/666))
+            # cv2.waitKey(1)
+            #輪郭検出
+            det_img, contours, hierarchy = cv2.findContours(new, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            """
+            im = cv2.drawContours(image.copy(), contours, -1, (0, 255, 0), self.l_weight) 
+            cv2.imshow("contours", scale_down(im, max(img.shape[0], img.shape[1])/SIZE))
+            #cv2.imshow("contours", im)
+            cv2.waitKey(1)
+            """
+            #print(len(contours))
+            # TODO: ここのマジックナンバーなんとかする
+            if len(contours) < 400:
+                thr -= 10
+                continue
+            #else:
+                #return
+            #各輪郭から重心および面積を算出
+            for cnt in contours:
+                M = cv2.moments(cnt)
+                areas.append(M['m00'])
+
+                #輪郭の重心を座標値としてリストに格納
+                if M['m00'] != 0:
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    stars.append(np.array([[cx, cy]], dtype='int32'))
+                else:
+                    stars.append(np.array([cnt[0][0]], dtype='int32'))
+            maxarea_index = np.argmax(areas)
+            #画像の大半を消去してしまうようならthrあげるべき/削除方式をやめるべき？
+            """
+            if areas[maxarea_index] > image.shape[0] * image.shape[1] / 6:
+                thr += 10
+                continue
+            """
+            #偏差を求める
+            if firstflag:
+                area_std = np.std(areas)
+                print("std:", area_std)
+                #q75, q25 = np.percentile(areas, [75, 25])
+                #iqr = q75 - q25
+                firstflag = False
+            #面積の最大値周辺は見ない：ここから
+            #if areas[maxarea_index] > 2.5 * area_std:
+            #分散が大きい場合、外れ値を削除していく
+            # TODO: 楕円で削除
+            if area_std > 100 and areas[maxarea_index] > 2.5 * area_std:
+                cnt = contours[maxarea_index]
+                x, y, w, h = cv2.boundingRect(cnt)
+                #epsilon = 0.1 * cv2.arcLength(cnt, True)
+                #approx = cv2.approxPolyDP(cnt, epsilon, True)
+                del_img = cv2.rectangle(del_img, (x, y), (x+w, y+h), (255, 0, 0), -1)
+                img_gray = cv2.cvtColor(del_img, cv2.COLOR_RGB2GRAY)
+                # DEBUG
+                # cv2.imshow("deleted", self.scale_down(max(del_img.shape[0], del_img.shape[1])/666))
+                # cv2.waitKey(1)
+
+                continue
+            # else:
+                # DEBUG
+                # cv2.imshow("deleted", self.scale_down(max(del_img.shape[0], del_img.shape[1])/666))
+                # cv2.waitKey(1)
+            #ここまで
             
-            if i > DEPTH:
+            flag = False
+            
+        #星のうち明るいほうから順に取り出す
+        r_areas_arg = np.argsort(areas)[::-1] #面積の大きい順にインデックスをリストに格納
+        astars = [stars[r_areas_arg[i]] for i in range(self.star_num)]
+
+        print("threashold:",thr)
+        
+        tmp = self.image.copy()
+        for star in astars:
+            cv2.circle(tmp, (star[0][0],star[0][1]), 2, (0,0,255), -1, cv2.LINE_AA)
+        # DEBUG
+        # cv2.imshow("finalcnt", self.scale_down(max(tmp.shape[0], tmp.shape[1])/SIZE))
+        # cv2.waitKey(1)
+        return astars
+
+    def on_mouse(self, event, x, y, flag, param):
+        """マウスクリック時"""
+        #左クリックで最近傍の星出力
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print("mouse:", x, y, sep=' ', end='\n')
+            print(self.search_near_star(x, y, 0))
+
+    def search_near_star(self, x, y, i):
+        """(x, y)にi番目(0オリジン)に近いものを返す"""
+        if i >= len(self.stars):
+            print("Can't detect")
+            #sys.exit(1)
+            return np.array([None, None])
+
+        p = np.array([x, y])
+        if np.allclose(self.stars_dist["now"], p):
+            return self.stars[self.stars_dist["index"][i]]
+        else:
+            L = [np.linalg.norm(star-p) for star in self.stars]
+            index = np.array(L)
+            index = np.argsort(index)
+            self.stars_dist["index"] = index   #メモ化
+            return self.stars[index[i]]
+
+    def draw_line(self, constellation):
+        self.written_img = self.image.copy()
+        self.constellation = constellation
+        C = constellation
+
+        stella_count = 0
+        stella_data, like_list = [], []
+        sockcnt = 0
+        for star in self.stars:
+            # michibiki用emit -----
+            if self.socket is not None:
+                emit('searching', {"data": sockcnt})
+                sockcnt += 1
+                self.socket.sleep(0)
+            # ---------------------
+            self.star_count = 1
+            std = np.array([star[0][0], star[0][1]])
+            i = 1
+            while True:
+                #2番目の星候補
+                p1 = self.search_near_star(std[0], std[1], i)[0]
+                d1 = np.linalg.norm(p1-std)
+                if i > self.star_depth:
+                    break
+                #2番目の星から先で星座が書けるかどうかをチェック
+                point, bector = p1, p1-std
+                #print(p1)
+                self.likelihood, self.star_count = 0, 0
+                point, bector = self.__trac_constellation(False, point, bector, std, d1, C)
+                if self.star_count > 0:
+                    l_c = self.likelihood/self.star_count
+                    #print("L:",self.likelihood,"C:",self.star_count,"L/C:",l_c)
+                C["itr"] = 0
+                #第一返値で見つかってるかチェック
+                if point is None: #見つかってなければ次の星へ
+                    i += 1
+                else: #見つかったら
+                    if l_c < 1:
+                        #描く
+                        sp, ep = self.__line_adjust(std, p1)
+                        cv2.line(self.written_img, sp, ep, (255,255,255), self.l_weight, cv2.LINE_AA)
+                        cv2.circle(self.written_img,
+                                   (std[0],std[1]),
+                                   self.c_radius,
+                                   (255,255,255),
+                                   self.l_weight,
+                                   cv2.LINE_AA
+                                  )
+                        self.__trac_constellation(True, p1, p1-std, std, d1, C)
+                        return
+                    elif l_c < 2 or self.star_count > C["N"]:
+                        print(l_c)
+                        stella_count += 1
+                        stella_data.append([p1, p1-std, std, d1])
+                        like_list.append(l_c)
+                    i += 1
+        print("visited all stars")
+        if len(like_list) > 0:
+            I = stella_data[np.argmin(like_list)]
+            print("likelihood:", like_list[np.argmin(like_list)])
+            sp, ep = self.__line_adjust(I[2], I[0])
+            cv2.line(self.written_img, sp, ep, (255,255,255), self.l_weight, cv2.LINE_AA)
+            cv2.circle(self.written_img,
+                       (I[2][0],I[2][1]),
+                       self.c_radius,
+                       (255,255,255),
+                       self.l_weight,
+                       cv2.LINE_AA
+                      )
+            self.__trac_constellation(True, I[0], I[1], I[2], I[3], C)
+        else:
+            print("failed to detect")
+
+    def __line_adjust(self, start, end):
+        """線分を円周の部分までで止めるような始点、終点を返す"""
+        b = end - start
+        b = b / np.linalg.norm(b)
+        restart = start + b * self.c_radius
+
+        b = start - end
+        b = b / np.linalg.norm(b)
+        reend = end + b * self.c_radius
+
+        return ((int(restart[0]), int(restart[1])), (int(reend[0]), int(reend[1])))
+
+    def __trac_constellation(self, write, bp, bec, std_p, std_d, cst):
+        """(描画判断、前の座標、前ベクトル、基準点、基準距離, 星座の一部)"""
+        C = cst
+        img = self.written_img
+        dist, ang, rd = C["D"][C["itr"]], C["ANGS"][C["itr"]], C["STD_D"][C["itr"]]
+
+        i, p, d = 1, 0, 0
+        angles, lengths = [], []
+        A = []
+        points = []
+        while d/std_d < dist * 0.9:
+            p = self.search_near_star(bp[0], bp[1], i)[0]
+            if p is None:
                 break
-            #2番目の星から先で星座が書けるかどうかをチェック
-            point, bector = p1, p1-std
-            #print(p1)
-            likelihood, star_count = 0, 0
-            point, bector = trac_constellation(False, img, point, bector, std, d1, stars, C)
-            if star_count > 0:
-                l_c = likelihood/star_count
-                #print("L:",likelihood,"C:",star_count,"L/C:",l_c)
-            C["itr"] = 0
-            #第一返値で見つかってるかチェック
-            if point is None: #見つかってなければ次の星へ
+            else:
+                d = np.linalg.norm(bp - p)
                 i += 1
-            else: #見つかったら
-                if l_c < 1:
-                    print("find!")
-                    #描く
-                    sp, ep = line_adjust(std, p1)
-                    cv2.line(img, sp, ep, WHITE, LWEIGHT, cv2.LINE_AA)
-                    cv2.circle(img, (std[0],std[1]), CRADIUS, WHITE, LWEIGHT, cv2.LINE_AA)
-                    trac_constellation(True, img, p1, p1-std, std, d1, stars, C)
-                    if socket is not None:
-                        emit('searching', {"data": 119})
-                        socket.sleep(0)
-                    return
-                elif l_c < 2 or star_count > C["N"]:
-                    print(l_c)
-                    stella_count += 1
-                    stella_data.append([p1, p1-std, std, d1])
-                    like_list.append(l_c)
-                i += 1
-    print("visited all stars")
-    if len(like_list) > 0:
-        I = stella_data[np.argmin(like_list)]
-        sp, ep = line_adjust(I[2], I[0])
-        cv2.line(img, sp, ep, WHITE, LWEIGHT, cv2.LINE_AA)
-        cv2.circle(img, (I[2][0],I[2][1]), CRADIUS, WHITE, LWEIGHT, cv2.LINE_AA)
-        trac_constellation(True, img, I[0], I[1], I[2], I[3], stars, C)
-    else:
-        print("failed to detect")
-    del like_list, stella_data
-
-def line_adjust(start, end):
-    """線分を円周の部分までで止めるような始点、終点を返す"""
-    b = end - start
-    b = b / np.linalg.norm(b)
-    restart = start + b * CRADIUS
-
-    b = start - end
-    b = b / np.linalg.norm(b)
-    reend = end + b * CRADIUS
-
-    return ((int(restart[0]), int(restart[1])), (int(reend[0]), int(reend[1])))
-
-def trac_constellation(write, img, bp, bec, std_p, std_d, stars, constellation):
-    """(描画判断、描画先、前の座標、前ベクトル、基準点、基準距離、星座標リスト、星座dic)"""
-    C = constellation
-    dist, ang, rd = C["D"][C["itr"]], C["ANGS"][C["itr"]], C["STD_D"][C["itr"]]
-
-    i, p, d = 1, 0, 0
-    angles, lengths = [], []
-    A = []
-    points = []
-    global likelihood
-    global star_count
-    while d/std_d < dist * 0.9:
-        p = search_near_star(bp[0], bp[1], i, stars)[0]
-        if p is None:
-            break
-        else:
-            d = np.linalg.norm(bp - p)
-            i += 1
-    while d/std_d < dist * 1.1:
-        if p is None:
-            break
-        dot = np.dot(bec, p-bp)
-        cos = dot / (d * np.linalg.norm(bec))
-        if cos > 1 or cos < -1:
-            p = search_near_star(bp[0], bp[1], i, stars)[0]
-            d = np.linalg.norm(bp - p)
-            i += 1
-        else:
-            rad = math.acos(cos)
-            theta = rad * 180 / np.pi
-            d_s = np.linalg.norm(p-std_p)/std_d
-            # TODO:角度の許容範囲
-            if ((theta > ang-ARANGE and theta < ang+ARANGE) and
-                (d_s > rd*0.9 and d_s < rd*1.1)): 
-                A.append(theta)
-                angles.append(abs(theta-ang))
-                lengths.append(abs(d_s-rd))
-                points.append([p[0], p[1]])
-                
-                #print(bp, i, "in", p,"(theta, d_s)", (theta, d_s),d/std_d, sep=" ")
-                p = search_near_star(bp[0], bp[1], i, stars)[0]
-                if p is None:
-                    # TODO:応急
-                    print("miss")
-                    return (None, None)
+        while d/std_d < dist * 1.1:
+            if p is None:
+                break
+            dot = np.dot(bec, p-bp)
+            cos = dot / (d * np.linalg.norm(bec))
+            if cos > 1 or cos < -1:
+                p = self.search_near_star(bp[0], bp[1], i)[0]
                 d = np.linalg.norm(bp - p)
                 i += 1
             else:
-                #print(bp, i, "out", p, "(theta, d_s)", (theta, d_s), sep=" ")
-                p = search_near_star(bp[0], bp[1], i, stars)[0]
-                if p is None:
-                    # TODO:応急
-                    print("miss")
-                    return (None, None)
-                d = np.linalg.norm(bp - p)
-                i += 1
-    if len(angles) == 0:
-        #print("itr:", C["itr"], "angles is empty", ang)
-        C["itr"] = 0
-        C["BP"].clear()
-        if write:
-            # TODO:理想値を計算し線のみ描画
-            cv2.circle(img, (bp[0], bp[1]), CRADIUS, WHITE, LWEIGHT, cv2.LINE_AA)
-        # TODO:要検証 失敗時にも分岐を書く
-        #if write and (len(C["BP"]) > 0):
-        if len(C["BP"]) > 0:
-            for (branch, rest) in zip(C["BP"], C["REST"]):
-                trac_constellation(write, img, branch, tp-bp, std_p, std_d, stars, rest)    
+                #rad = math.acos(cos)
+                #theta = rad * 180 / np.pi
+                rad = np.arccos(cos)
+                theta = np.rad2deg(rad)
+                d_s = np.linalg.norm(p-std_p)/std_d
+                # TODO:角度の許容範囲
+                if ((theta > ang-self.angle_depth and theta < ang+self.angle_depth) and
+                    (d_s > rd*0.9 and d_s < rd*1.1)): 
+                    A.append(theta)
+                    angles.append(abs(theta-ang))
+                    lengths.append(abs(d_s-rd))
+                    points.append([p[0], p[1]])
+                    #if np.allclose(bp, [560, 1204]):
+                    #    print(bp, i, "in", p,"(theta, d_s)", (theta, d_s),d/std_d, sep=" ")
+                    p = self.search_near_star(bp[0], bp[1], i)[0]
+                    if p is None:
+                        # TODO:応急
+                        print("miss")
+                        return (None, None)
+                    d = np.linalg.norm(bp - p)
+                    i += 1
+                else:
+                    #if np.allclose(bp, [560, 1204]):
+                    #    print(bp, i, "out", p, "(theta, d_s)", (theta, d_s), sep=" ")
+                    p = self.search_near_star(bp[0], bp[1], i)[0]
+                    if p is None:
+                        # TODO:応急
+                        print("miss")
+                        return (None, None)
+                    d = np.linalg.norm(bp - p)
+                    i += 1
+        if len(angles) == 0:
+            #print("itr:", C["itr"], "angles is empty", ang)
             C["itr"] = 0
-        return (None, None)
-    else: #可能性のある星を検出できていた場合
-        tp = np.array(points[np.argmin(angles)])
-        star_count += 1
-        if star_count <= 4:
-            likelihood += (abs(d/std_d - dist) + np.min(angles) + lengths[np.argmin(angles)])/(star_count/C["N"])
-        if write:
-            #print("writed:", tp)
-            sp, ep = line_adjust(bp, tp)
-            cv2.line(img, sp, ep, WHITE, LWEIGHT, cv2.LINE_AA)
-            cv2.circle(img, (bp[0], bp[1]), CRADIUS, WHITE, LWEIGHT, cv2.LINE_AA)
-
-        if C["itr"] in C["JCT"]:
-            C["BP"].append(tp)
-
-        C["itr"] += 1
-        if C["itr"] == len(C["D"]):
-            cv2.circle(img, (tp[0], tp[1]), CRADIUS, WHITE, LWEIGHT, cv2.LINE_AA)
-            #検出部終了時描画モードかつ分岐点が存在したら続きを描画
+            C["BP"].clear()
+            if write:
+                # TODO:理想値を計算し線のみ描画
+                cv2.circle(img, (bp[0], bp[1]), self.c_radius, (255,255,255), self.l_weight, cv2.LINE_AA)
+            # TODO:要検証 失敗時にも分岐を書く
+            #if write and (len(C["BP"]) > 0):
             if len(C["BP"]) > 0:
                 for (branch, rest) in zip(C["BP"], C["REST"]):
-                    #print("nowonBP:", branch)
-                    trac_constellation(write, img, branch, tp-bp, std_p, std_d, stars, rest)    
-            C["itr"] = 0
-            #print("end checked")
-            return (END, END)
+                    self.__trac_constellation(write, branch, tp-bp, std_p, std_d, rest)    
+                C["itr"] = 0
+            return (None, None)
+        else: #可能性のある星を検出できていた場合
+            tp = np.array(points[np.argmin(angles)])
+            self.star_count += 1
+            if self.star_count <= 4:
+                self.likelihood += (abs(d/std_d - dist) + np.min(angles) + lengths[np.argmin(angles)])/(self.star_count/C["N"])
+            if write:
+                #print("ANGS:", A[np.argmin(angles)])
+                #print("writed:", tp)
+                sp, ep = self.__line_adjust(bp, tp)
+                cv2.line(img, sp, ep, (255,255,255), self.l_weight, cv2.LINE_AA)
+                cv2.circle(img, (bp[0], bp[1]), self.c_radius, (255,255,255), self.l_weight, cv2.LINE_AA)
 
-        return trac_constellation(write, img, tp, tp-bp, std_p, std_d, stars, C)
+            if C["itr"] in C["JCT"]:
+                C["BP"].append(tp)
 
-def trace(cv2img, constellation, sock):
-    """外部から使うための関数"""
-    global socket
-    socket = sock
-    # TODO:星の写真かどうかの判定
-    stars = detect_stars(cv2img)
-    emit('my_response', {"data": "detected stars from image"})
-    sock.sleep(0)
-    draw_line(cv2img, stars, constellation.get())
-    # TODO:途中で終わった時
-    #cv2.imwrite(constellation.get_name()+"_trace_test.jpg", cv2img)
-    return cv2img
+            C["itr"] += 1
+            if C["itr"] == len(C["D"]):
+                cv2.circle(img, (tp[0], tp[1]), self.c_radius, (255,255,255), self.l_weight, cv2.LINE_AA)
+                #検出部終了時描画モードかつ分岐点が存在したら続きを描画
+                if len(C["BP"]) > 0:
+                    for (branch, rest) in zip(C["BP"], C["REST"]):
+                        #print("nowonBP:", branch)
+                        self.__trac_constellation(write, branch, tp-bp, std_p, std_d, rest)    
+                C["itr"] = 0
+                #print("end checked")
+                return (2**16, 2**16)
+
+            return self.__trac_constellation(write, tp, tp-bp, std_p, std_d, C)
 
 if __name__ == '__main__':
-    start = time.time()
-    IMAGE_FILE = "0038" #スピード:test < 1618 <= 1614 << 1916
-    f = "..\\stardust\\source\\" + IMAGE_FILE + ".JPG"
-    img = cv2.imread(f)
+    IMAGE_FILE = "1916" #スピード:test < 1618 <= 1614 << 1916
+    f = "source\\" + IMAGE_FILE + ".JPG"
+
+    start = time.time()    
+    sd = Stardust(f)
     cs = Constellation.Sagittarius()
-    #cs = Constellation.Perseus()
+    sd.draw_line(cs.get())
+    end = time.time()
+    print("elapsed:", end - start)
     
-    #BIGMODE
-    stars = detect_stars(img)
-    draw_line(img, stars, cs.get())
-    img = scale_down(img, max(img.shape[0], img.shape[1])/SIZE)
-    """
-    
-    #SMALLMODE
-    img = scale_down(img, max(img.shape[0], img.shape[1])/SIZE)
-    stars = detect_stars(img)
-    draw_line(img, stars, cs.get())
-    """
-    #cv2.namedWindow("stardust", cv2.WINDOW_NORMAL)
-    cv2.imshow("stardust", img)
-    cv2.setMouseCallback("stardust", on_mouse, stars)
-    print("time:", time.time()-start)
-    #cv2.imwrite(cs.get_name() + "_" + IMAGE_FILE + ".JPG", img)
+    ret = sd.get_image()
+    cv2.namedWindow("return", cv2.WINDOW_NORMAL)
+    cv2.imshow("return", ret)
+    cv2.setMouseCallback("return", sd.on_mouse)
     cv2.waitKey()
