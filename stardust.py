@@ -212,6 +212,9 @@ class Stardust:
                                    cv2.LINE_AA
                                   )
                         self.__trac_constellation(True, p1, p1-std, std, d1, C)
+                        if self.socket is not None:
+                            emit('searching', {"data": self.star_num-1})
+                            self.socket.sleep(0)
                         return
                     elif l_c < 2 or self.star_count > C["N"]:
                         print(l_c)
