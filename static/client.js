@@ -8,10 +8,24 @@ $(document).ready(function() {
         if ($("#thumbnail > img").length) {
             $("#thumbnail > img").remove();
         }
-        $("#thumbnail").append('<img src="'+thumb.result+'">');
-        b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 10));
-        console.log("b64arr length:"+b64arr.length);
-        console.log("[] length:"+b64arr[0].length);
+        if (Math.max(thumb.result.height, thumb.result.width) <= 2000) {
+            $("#thumbnail").append('<img src="'+thumb.result+'">');
+            b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 10));
+            console.log("b64arr length:"+b64arr.length);
+            console.log("[] length:"+b64arr[0].length);
+        } else {
+            resizeB64(thumb.result,
+                function(b64img) {  
+                    console.log(b64img);
+                    $("#thumbnail").append('<img src="'+b64img+'">');
+                    b64arr = lsplit(b64img, Math.floor(b64img.length / 10));
+                    console.log("b64arr length:"+b64arr.length);
+                    console.log("[] length:"+b64arr[0].length);
+                }
+            );
+        }
+        //$("#thumbnail").append('<img src="'+thumb.result+'">');
+
     });
     
     if (window.File && window.FileReader) {
@@ -166,4 +180,26 @@ function lsplit(str, length) {
         end = start + length;
     }
     return resultArr;
+}
+
+function resizeB64(b64img, callback) {
+    const SIZE = 2000;
+    var img = new Image();
+    img.onload = function() {
+        var canvas = document.createElement("canvas");
+        var dstHeight, dstWidth;
+        if (this.width > this.height) {
+            dstWidth = SIZE;
+            dstHeight = this.height * SIZE / this.width;
+        } else {
+            dstHeight = SIZE;
+            dstWidth = this.width * SIZE / this.height;
+        }
+        canvas.width = dstWidth;
+        canvas.height = dstHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, dstWidth, dstHeight);
+        callback(canvas.toDataURL("image/jpeg"));
+    };
+    img.src = b64img;
 }
