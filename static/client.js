@@ -8,12 +8,12 @@ $(document).ready(function() {
         if ($("#thumbnail > img").length) {
             $("#thumbnail > img").remove();
         }
-        if (Math.max(thumb.result.height, thumb.result.width) <= 2000) {
+        //if (Math.max(thumb.result.height, thumb.result.width) <= 2000) {
             $("#thumbnail").append('<img src="'+thumb.result+'">');
             b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 10));
             console.log("b64arr length:"+b64arr.length);
             console.log("[] length:"+b64arr[0].length);
-        } else {
+        /*} else {
             resizeB64(thumb.result,
                 function(b64img) {  
                     console.log(b64img);
@@ -23,7 +23,7 @@ $(document).ready(function() {
                     console.log("[] length:"+b64arr[0].length);
                 }
             );
-        }
+        }*/
         //$("#thumbnail").append('<img src="'+thumb.result+'">');
 
     });
