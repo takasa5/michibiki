@@ -15,6 +15,7 @@ import re
 import eventlet
 eventlet.monkey_patch(socket=True, select=True)
 
+
 data_buffer = {}
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
