@@ -13,6 +13,7 @@ import time
 import os
 import re
 import eventlet
+import urllib.request
 eventlet.monkey_patch(socket=True, select=True)
 
 
@@ -20,7 +21,7 @@ data_buffer = {}
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode="eventlet", ping_timeout=25, ping_interval=1)
-    
+
 @app.route('/')
 def index():
     return render_template('index.html', title="みちびき(仮)")
@@ -28,6 +29,37 @@ def index():
 @app.route('/send_message')
 def send_message_page():
     return render_template('sender.html', title="報告フォーム - みちびき(仮)")
+
+# 6/18 HTTPによる画像取得
+# TODO: マルチワーカ化
+@app.route('/datasend', methods=["POST"])
+def data_send():
+    image = request.form["image"]
+    cstl = request.form["cst"]
+    #画像読み込み
+    img = readb64(image.split("data:image/jpeg;base64,")[1])
+    #星座追跡
+    # TODO:星景写真かどうかの判定
+    if cstl in ["sagittarius"]:
+        cst = Constellation.Sagittarius()
+    # ここに他の星座を追加 ていうかもっとスマートにする
+    #traced_img = stardust.trace(img, cst, socketio)
+    sd = Stardust(img)
+    sd.draw_line(cst)
+    traced_img = sd.get_image()
+    #emit('my_response', {'data': "found constellation"})
+    #socketio.sleep(0)
+    #画像->base64
+    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
+    sbuf = BytesIO()
+    pil_img.save(sbuf, format='JPEG')
+    sbuf = sbuf.getvalue()
+    encode_img = base64.b64encode(sbuf)
+
+    print("finish!")
+
+    #socketio.start_background_task(target=recv_end, message=message)
+    return "data:image/jpeg;base64,"+encode_img.decode('utf-8')
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -49,6 +81,7 @@ def recv_start(message):
     global data_buffer
     data_buffer[request.sid] = message['data']
     emit('require_data', {'index': message['index']+1})
+
 
 @socketio.on('data_cont', namespace='/test')
 def recv_cont(message):
@@ -72,7 +105,7 @@ def recv_end(message):
         # ここに他の星座を追加 ていうかもっとスマートにする
         #traced_img = stardust.trace(img, cst, socketio)
         sd = Stardust(img, socket=socketio)
-        sd.draw_line(cst.get())
+        sd.draw_line(cst)
         traced_img = sd.get_image()
         emit('my_response', {'data': "found constellation"})
         socketio.sleep(0)

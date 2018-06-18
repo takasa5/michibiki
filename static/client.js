@@ -98,7 +98,20 @@ $(document).ready(function() {
             $(".progressbar").val(0);
             $("#log").append('<br>' + $('<div/>').text("send").html());
             //socket.emit('my_image', {data: buf});
-            socket.emit('data_start', {data: b64arr[0], index: 0});
+            //socket.emit('data_start', {data: b64arr[0], index: 0});
+            console.log("push")
+            var postData = {"image": thumb.result, "cst": tgt_cst};
+            $.post("http://127.0.0.1:5000/datasend", postData)
+            .done(function(data) {
+                console.log(data)
+                if ($("#result > img").length) {
+                    $("#result > img").remove();
+                }
+                $("#result").append('<img src="'+data+'">');
+            })
+            .fail(function(data) {
+                console.log("fail")
+            });
             //socket.emit('data_end', {data: thumb.result})
         }
         return false;        
