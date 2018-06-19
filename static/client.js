@@ -50,42 +50,16 @@ $(document).ready(function() {
     socket.on('my_response', function(msg) {
         $("#log").append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
     });
-    socket.on('message', function() {
-        console.log("message");
-    });
-    socket.on('return_image', function(msg) {
-        console.log("image received");
-        console.log(msg.data)
-        //$("#result").html('<img src="'+msg.data+'">');
-        if ($("#result > img").length) {
-            $("#result > img").remove();
-        }
-        $("#result").append('<img src="'+msg.data+'">');
-    });
-    //分割データ受信
-    socket.on('require_data', function(msg) {
-        if (msg.index == b64arr.length) {
-            socket.emit('data_end', {cst: tgt_cst});
-            $("#log").append('<br>' + $('<div/>').text("finish sending").html());
-        }else{
-            $("#sendBar").val(msg.index)
-            socket.emit('data_cont', {data: b64arr[msg.index], index: msg.index});
-        }
-    });
-
+    
     socket.on('searching', function(msg){
         $("#searchBar").val(msg.data)
     });
-
-    $('form#emit').submit(function(event) {
-        console.log("pushed");
-        socket.emit('my_event', {data: $('#emit_data').val()});
-        return false;
-    });
+    // 画像選択時に表示
     $('#image_data').change(function(){
         //reader.readAsArrayBuffer(this.files[0]);
         thumb.readAsDataURL(this.files[0]);
     });
+    // 探すボタン押下時
     $("form#toServer").submit(function(event) {
         if (thumb.result == null) {
             alert("画像を指定してください");
@@ -95,28 +69,26 @@ $(document).ready(function() {
             //うまくできない
             alert("サーバーとの接続に失敗しました\nページを再読み込みしてください");
         } else {
-            $(".progressbar").val(0);
             $("#log").append('<br>' + $('<div/>').text("send").html());
-            //socket.emit('my_image', {data: buf});
-            //socket.emit('data_start', {data: b64arr[0], index: 0});
             console.log("push")
-            var postData = {"image": thumb.result, "cst": tgt_cst};
-            $.post("http://127.0.0.1:5000/datasend", postData)
-            .done(function(data) {
-                console.log(data)
-                if ($("#result > img").length) {
-                    $("#result > img").remove();
-                }
-                $("#result").append('<img src="'+data+'">');
-            })
-            .fail(function(data) {
-                console.log("fail")
-            });
-            //socket.emit('data_end', {data: thumb.result})
+            socket.emit('push_send');            
         }
         return false;        
     });
-
+    socket.on('session_id', function(msg) {
+        var postData = {"image": thumb.result, "cst": tgt_cst};
+        $.post(location.href + "/send/" + msg.id, postData)
+        .done(function(data) {
+            console.log(data)
+            if ($("#result > img").length) {
+                $("#result > img").remove();
+            }
+            $("#result").append('<img src="'+data+'">');
+        })
+        .fail(function(data) {
+            console.log("fail")
+        });
+    });
     //モーダルウインドウ
     $(".openModal").click(function() {
         var navClass = $(this).attr("class"),

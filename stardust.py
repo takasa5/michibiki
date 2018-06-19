@@ -18,7 +18,8 @@ class Stardust:
                  dist_max=50,  # 画像の大きさによるので固定すべきでなさそう
                  angle_max=5,
                  socket=None,
-                 debug=False
+                 debug=False,
+                 session=None
                  ):
         global IMPORT_SOCKET
         if isinstance(image_name, np.ndarray):  # 画像が直接渡された場合
@@ -47,6 +48,7 @@ class Stardust:
         self.written_img = self.image.copy()
         if IMPORT_SOCKET:
             self.socket = socket
+            self.session = session
         else:
             self.socket = None
         self.debug = debug
@@ -186,7 +188,7 @@ class Stardust:
         # 検出した星のうちself.star_num個すべてについてみていく
         for star in self.stars:
             if self.socket is not None:
-                emit('searching', {"data": sockcnt})
+                emit('searching', {"data": sockcnt}, room=self.session, namespace="/test")
                 sockcnt += 1
                 self.socket.sleep(0)
             self.std_star = star
@@ -242,7 +244,7 @@ class Stardust:
                                     cv2.LINE_AA  # 太さをマネージする(星座の大きさの計算が必要…？)
                                     )
                     if self.socket is not None:
-                        emit('searching', {"data": self.star_num-1})
+                        emit('searching', {"data": self.star_num-1}, room=self.session, namespace="/test")
                         self.socket.sleep(0)
                     print(constellation.en_name, "wrote.")
                     self.detect = True
