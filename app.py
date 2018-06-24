@@ -13,12 +13,9 @@ import time
 import os
 import re
 import eventlet
-import urllib.request
-import multiprocessing as mp
 eventlet.monkey_patch(socket=True, select=True)
 
 SESSIONS = []
-TO_SERVER = mp.Queue()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode="eventlet", ping_timeout=25, ping_interval=1)
@@ -42,34 +39,13 @@ def data_send(session_id):
     cstl = request.form["cst"]
     #画像読み込み
     img = readb64(image.split("data:image/jpeg;base64,")[1])
-    #星座追跡
     # TODO:星景写真かどうかの判定
     if cstl in ["sagittarius"]:
         cst = Constellation.Sagittarius()
 
-    TO_SERVER.put([app, img, cst, session_id])
-    p = mp.Process(target=image_processing, args=(TO_SERVER,))
-    with app.app_context():
-        p.start()
+    TO_SERVER = [img, cst, session_id]
+    socketio.start_background_task(target=image_processing, from_client=TO_SERVER)
     return "successed"
-    # # ここに他の星座を追加 ていうかもっとスマートにする
-    # #traced_img = stardust.trace(img, cst, socketio)
-    # sd = Stardust(img, socket=socketio, session=session_id)
-    # sd.draw_line(cst)
-    # traced_img = sd.get_image()
-    # #emit('my_response', {'data': "found constellation"})
-    # #socketio.sleep(0)
-    # #画像->base64
-    # pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
-    # sbuf = BytesIO()
-    # pil_img.save(sbuf, format='JPEG')
-    # sbuf = sbuf.getvalue()
-    # encode_img = base64.b64encode(sbuf)
-
-    # print("finish!")
-
-    # #socketio.start_background_task(target=recv_end, message=message)
-    # return "data:image/jpeg;base64,"+encode_img.decode('utf-8')
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -106,19 +82,21 @@ def background_send(message):
     my_email_sender.send_message(my_email_sender.create_message(message))
 
 def image_processing(from_client):
-    app, img, cst, session_id = from_client.get() 
-    # 星座検出
-    sd = Stardust(img, socket=socketio, session=session_id)
-    sd.draw_line(cst)
-    traced_img = sd.get_image()
-    # 画像->base64
-    pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
-    sbuf = BytesIO()
-    pil_img.save(sbuf, format='JPEG')
-    sbuf = sbuf.getvalue()
-    encode_img = base64.b64encode(sbuf)
-    b64img = "data:image/jpeg;base64,"+encode_img.decode('utf-8')
-    emit("process_finished", {"img": b64img}, room=session_id, namespace="/test")
+    global app
+    img, cst, session_id = from_client
+    with app.app_context():
+        # 星座検出
+        sd = Stardust(img, socket=socketio, session=session_id)
+        sd.draw_line(cst)
+        traced_img = sd.get_image()
+        # 画像->base64
+        pil_img = Image.fromarray(cv2.cvtColor(traced_img, cv2.COLOR_BGR2RGB))
+        sbuf = BytesIO()
+        pil_img.save(sbuf, format='JPEG')
+        sbuf = sbuf.getvalue()
+        encode_img = base64.b64encode(sbuf)
+        b64img = "data:image/jpeg;base64,"+encode_img.decode('utf-8')
+        emit("process_finished", {"img": b64img}, room=session_id, namespace="/test")
 
 def readb64(b64_str):
     sbuf = BytesIO()
