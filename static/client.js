@@ -2,30 +2,12 @@ $(document).ready(function() {
     var thumb = new FileReader();
     var sender = new FileReader();
     var tgt_cst = null;
-    var b64arr = [];
     thumb.addEventListener('load', function() {
         //$("#thumbnail").children("img").attr("src", thumb.result);
         if ($("#thumbnail > img").length) {
             $("#thumbnail > img").remove();
         }
-        //if (Math.max(thumb.result.height, thumb.result.width) <= 2000) {
-            $("#thumbnail").append('<img src="'+thumb.result+'">');
-            b64arr = lsplit(thumb.result, Math.floor(thumb.result.length / 10));
-            console.log("b64arr length:"+b64arr.length);
-            console.log("[] length:"+b64arr[0].length);
-        /*} else {
-            resizeB64(thumb.result,
-                function(b64img) {  
-                    console.log(b64img);
-                    $("#thumbnail").append('<img src="'+b64img+'">');
-                    b64arr = lsplit(b64img, Math.floor(b64img.length / 10));
-                    console.log("b64arr length:"+b64arr.length);
-                    console.log("[] length:"+b64arr[0].length);
-                }
-            );
-        }*/
-        //$("#thumbnail").append('<img src="'+thumb.result+'">');
-
+        $("#thumbnail").append('<img src="'+thumb.result+'">');
     });
     
     if (window.File && window.FileReader) {
@@ -50,13 +32,12 @@ $(document).ready(function() {
     socket.on('my_response', function(msg) {
         $("#log").append('<br>' + $('<div/>').text('Received: ' + msg.data).html());
     });
-    
+    // 星座検出時の進捗表示
     socket.on('searching', function(msg){
         $("#searchBar").val(msg.data)
     });
     // 画像選択時に表示
     $('#image_data').change(function(){
-        //reader.readAsArrayBuffer(this.files[0]);
         thumb.readAsDataURL(this.files[0]);
     });
     // 探すボタン押下時
@@ -80,14 +61,21 @@ $(document).ready(function() {
         $.post(location.href + "/send/" + msg.id, postData)
         .done(function(data) {
             console.log(data)
-            if ($("#result > img").length) {
-                $("#result > img").remove();
+            if(data == "failed") {
+                alert("不正なセッションです");
+            }else if (data == "successed") {
+                console.log("success");
             }
-            $("#result").append('<img src="'+data+'">');
         })
         .fail(function(data) {
-            console.log("fail")
+            console.log("fail");
         });
+    });
+    socket.on("process_finished", function(msg) {
+        if ($("#result > img").length) {
+            $("#result > img").remove();
+        }
+        $("#result").append('<img src="'+msg.img+'">');
     });
     //モーダルウインドウ
     $(".openModal").click(function() {
@@ -150,22 +138,6 @@ $(document).ready(function() {
     });
     
 });
-function lsplit(str, length) {
-    var resultArr = [];
-    if (!str || !length || length < 1) {
-        return resultArr;
-    }
-    var index = 0;
-    var start = index;
-    var end = start + length;
-    while (start < str.length) {
-        resultArr[index] = str.substring(start, end);
-        index++;
-        start = end;
-        end = start + length;
-    }
-    return resultArr;
-}
 
 function resizeB64(b64img, callback) {
     const SIZE = 2000;
