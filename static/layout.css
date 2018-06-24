@@ -145,6 +145,11 @@ body {
     position: relative;
     display: inline-block;
     cursor: pointer;
+    margin: 10px
+}
+
+.constellationList>img {
+    width: 150px
 }
 
 .constellationList span {

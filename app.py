@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, copy_current_request_context
 from flask_socketio import SocketIO, emit
 from PIL import Image
 from io import BytesIO
-import Constellation
+import Constellation as cs
 from stardust import Stardust
 import my_email_sender
 import time
@@ -16,6 +16,8 @@ import eventlet
 eventlet.monkey_patch(socket=True, select=True)
 
 SESSIONS = []
+CSTL_KEYS = ["sagittarius", "scorpius", "gemini", "taurus", "orion"]
+CSTL_DATA = [cs.sgr, cs.sco, cs.gem, cs.tau, cs.ori]
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode="eventlet", ping_timeout=25, ping_interval=1)
@@ -28,8 +30,6 @@ def index():
 def send_message_page():
     return render_template('sender.html', title="報告フォーム - みちびき(仮)")
 
-# 6/19 sid個別ページ
-# アクセスさばけなくなるのでbg化とかは必要
 @app.route('/send/<session_id>', methods=["POST"])
 def data_send(session_id):
     global SESSIONS
@@ -40,8 +40,10 @@ def data_send(session_id):
     #画像読み込み
     img = readb64(image.split("data:image/jpeg;base64,")[1])
     # TODO:星景写真かどうかの判定
-    if cstl in ["sagittarius"]:
-        cst = Constellation.Sagittarius()
+    for (key, data) in zip(CSTL_KEYS, CSTL_DATA):
+        if key in cstl:
+            print(key)
+            cst = data
 
     TO_SERVER = [img, cst, session_id]
     socketio.start_background_task(target=image_processing, from_client=TO_SERVER)
