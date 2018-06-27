@@ -80,6 +80,13 @@ body {
     transform: translate(-50%, -45%);
     white-space: nowrap;
 }
+.imageBox > .loader {
+    position: absolute;
+    left: 40%;
+    top: 35%;
+    transform: translate(-40%, -35%);
+    white-space: nowrap;
+}
 .imageBox img {
     position: absolute;
     left: 50%;
@@ -89,7 +96,7 @@ body {
     height: 95%;
     object-fit: contain;
 }
-.imageBox div {
+.imageBox div:not(.loader){
     position: absolute;
     font-size: 5em;
     font-weight: bold;

@@ -2,13 +2,19 @@ $(document).ready(function() {
     var thumb = new FileReader();
     var sender = new FileReader();
     var tgt_cst = null;
+    thumb.addEventListener("loadstart", function() {
+        if ($("#thumbnail > p").length)
+            $("#thumbnail > p").remove();
+        if ($("#thumbnail > img").length)
+            $("#thumbnail > img").remove();
+        $("#beforLoader").fadeIn(10);
+    });
     thumb.addEventListener('load', function() {
         //$("#thumbnail").children("img").attr("src", thumb.result);
-        if ($("#thumbnail > img").length) {
-            $("#thumbnail > img").remove();
-        }
         $("#thumbnail").append('<img src="'+thumb.result+'">');
+        $("#beforLoader").fadeOut();
     });
+
     
     if (window.File && window.FileReader) {
         console.log("File API is available");
@@ -34,7 +40,14 @@ $(document).ready(function() {
     });
     // 星座検出時の進捗表示
     socket.on('searching', function(msg){
-        $("#searchBar").val(msg.data)
+        $("#searchBar").val(msg.data);
+        if ($("#searchBar").val() == Number($("#searchBar").attr("max"))) {
+            if ($("#result > p").length)
+                $("#result > p").remove();
+            if ($("#result > img").length)
+                $("#result > img").remove();
+            $("#afterLoader").fadeIn(10);
+        }
     });
     // 画像選択時に表示
     $('#image_data').change(function(){
@@ -72,9 +85,7 @@ $(document).ready(function() {
         });
     });
     socket.on("process_finished", function(msg) {
-        if ($("#result > img").length) {
-            $("#result > img").remove();
-        }
+        $("#afterLoader").fadeOut();
         $("#result").append('<img src="'+msg.img+'">');
     });
     //モーダルウインドウ
