@@ -38,14 +38,14 @@ def data_send(session_id):
     image = request.form["image"]
     cstl = request.form["cst"]
     #画像読み込み
-    img = readb64(image.split("data:image/jpeg;base64,")[1])
+    # img = readb64(image.split("data:image/jpeg;base64,")[1])
     # TODO:星景写真かどうかの判定
     for (key, data) in zip(CSTL_KEYS, CSTL_DATA):
         if key in cstl:
             print(key)
             cst = data
 
-    TO_SERVER = [img, cst, session_id]
+    TO_SERVER = [image, cst, session_id]
     socketio.start_background_task(target=image_processing, from_client=TO_SERVER)
     return "successed"
 
@@ -85,7 +85,9 @@ def background_send(message):
 
 def image_processing(from_client):
     global app
-    img, cst, session_id = from_client
+    image, cst, session_id = from_client
+    #画像読み込み
+    img = readb64(image.split("data:image/jpeg;base64,")[1])
     with app.app_context():
         # 星座検出
         sd = Stardust(img, socket=socketio, session=session_id)

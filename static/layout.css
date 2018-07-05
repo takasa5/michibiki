@@ -126,6 +126,25 @@ body {
     height: 100%;
     z-index: 10;
 }
+.theater {
+    position: fixed;
+    cursor: default;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.8);
+    width: 100vw;
+    height: 100vh;
+    z-index: 3;
+    display: none;
+}
+.theater > img {
+    position: fixed;
+    max-width: 80%;
+    max-height: 80%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 .modal .inner {
     position: fixed;
     height: 80%;

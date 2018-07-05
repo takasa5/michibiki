@@ -42,10 +42,8 @@ $(document).ready(function() {
     socket.on('searching', function(msg){
         $("#searchBar").val(msg.data);
         if ($("#searchBar").val() == Number($("#searchBar").attr("max"))) {
-            if ($("#result > p").length)
-                $("#result > p").remove();
-            if ($("#result > img").length)
-                $("#result > img").remove();
+            $("#result").empty();
+            $(".theater").empty();
             $("#afterLoader").fadeIn(10);
         }
     });
@@ -86,7 +84,8 @@ $(document).ready(function() {
     });
     socket.on("process_finished", function(msg) {
         $("#afterLoader").fadeOut();
-        $("#result").append('<img src="'+msg.img+'">');
+        $(".theater").append('<img src="'+msg.img+'">');
+        $("#result").append('<a href="javascript:void(0);" onclick="onClickImage();"><img src="'+msg.img+'"></a>');
     });
     //モーダルウインドウ
     $(".openModal").click(function() {
@@ -170,4 +169,14 @@ function resizeB64(b64img, callback) {
         callback(canvas.toDataURL("image/jpeg"));
     };
     img.src = b64img;
+}
+
+function onClickImage() {
+    $(".theater").fadeIn();
+    return false;
+}
+
+function onClickTheater() {
+    $(".theater").fadeOut();
+    return false;
 }
