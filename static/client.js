@@ -2,6 +2,7 @@ $(document).ready(function() {
     var thumb = new FileReader();
     var sender = new FileReader();
     var tgt_cst = null;
+
     thumb.addEventListener("loadstart", function() {
         if ($("#thumbnail > p").length)
             $("#thumbnail > p").remove();
@@ -42,8 +43,12 @@ $(document).ready(function() {
     socket.on('searching', function(msg){
         $("#searchBar").val(msg.data);
         if ($("#searchBar").val() == Number($("#searchBar").attr("max"))) {
-            $("#result").empty();
-            $(".theater").empty();
+            if ($("#result > p").length > 0)
+                $("#result > p").remove();
+            if ($("#result > img").length > 0)
+                $("#result > img").remove();
+            if ($(".theater > img").length > 0)
+                $(".theater > img").remove();
             $("#afterLoader").fadeIn(10);
         }
     });
@@ -67,9 +72,11 @@ $(document).ready(function() {
         }
         return false;        
     });
+    // 探す
     socket.on('session_id', function(msg) {
         var postData = {"image": thumb.result, "cst": tgt_cst};
-        $.post(location.href + "/send/" + msg.id, postData)
+        session_id = msg.id
+        $.post(location.href + "/send/" + session_id, postData)
         .done(function(data) {
             console.log(data)
             if(data == "failed") {
@@ -86,6 +93,10 @@ $(document).ready(function() {
         $("#afterLoader").fadeOut();
         $(".theater").append('<img src="'+msg.img+'">');
         $("#result").append('<a href="javascript:void(0);" onclick="onClickImage();"><img src="'+msg.img+'"></a>');
+        processedImageID = msg.id;
+    });
+    $("#tweetButton").click(function() {
+        window.location.href = "/twitter/login/" + processedImageID;
     });
     //モーダルウインドウ
     $(".openModal").click(function() {
@@ -150,7 +161,7 @@ $(document).ready(function() {
 });
 
 function resizeB64(b64img, callback) {
-    const SIZE = 2000;
+    const SIZE = 1000;
     var img = new Image();
     img.onload = function() {
         var canvas = document.createElement("canvas");
@@ -173,6 +184,13 @@ function resizeB64(b64img, callback) {
 
 function onClickImage() {
     $(".theater").fadeIn();
+    var rad = $("#tweetButton").outerHeight() / 2;
+    var wid = $("#tweetButton").outerWidth();
+    var attr = rad + "px " + rad + "px " + rad + "px " + rad + "px";
+    $("#tweetButton").css({
+        "border-radius": attr,
+        "width": wid
+    });
     return false;
 }
 

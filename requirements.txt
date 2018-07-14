@@ -2,7 +2,7 @@ astroid==1.6.1
 click==6.7
 colorama==0.3.9
 enum34==1.1.6
-eventlet==0.22.0
+eventlet==0.17.4
 Flask==0.12.2
 Flask-SocketIO==2.9.3
 greenlet==0.4.13
@@ -21,4 +21,5 @@ python-socketio==1.8.4
 six==1.11.0
 Werkzeug==0.14.1
 wrapt==1.10.11
+rauth==0.7.3
 opencv-python
