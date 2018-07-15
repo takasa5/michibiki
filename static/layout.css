@@ -34,6 +34,10 @@ body {
     cursor: pointer;
     font-size: 0.8em;
 }
+.btn.disable {
+    filter: grayscale(100%);
+    cursor: default;
+}
 .btn:active {
     transform: translateY(4px);
     border-bottom: none;
@@ -150,7 +154,7 @@ body {
     font-size: 2vw;
     color: white;
     margin: 10px;
-    padding: 5px 5px;
+    padding: 5px 20px;
     position: absolute;
     background: #00aced;
     top: 90%;
@@ -158,6 +162,9 @@ body {
     display: inline-block;
     z-index: 10;
     cursor: pointer;
+}
+#tweetButton > span {
+    white-space: nowrap;
 }
 .modal .inner {
     position: fixed;

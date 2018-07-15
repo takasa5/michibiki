@@ -2,25 +2,30 @@ $(document).ready(function() {
     var thumb = new FileReader();
     var sender = new FileReader();
     var tgt_cst = null;
-
+    // ファイルロードイベントの設置
     thumb.addEventListener("loadstart", function() {
         if ($("#thumbnail > p").length)
             $("#thumbnail > p").remove();
         if ($("#thumbnail > img").length)
             $("#thumbnail > img").remove();
         $("#beforLoader").fadeIn(10);
+        $(".btn").addClass("disable");
     });
     thumb.addEventListener('load', function() {
         //$("#thumbnail").children("img").attr("src", thumb.result);
         $("#thumbnail").append('<img src="'+thumb.result+'">');
         $("#beforLoader").fadeOut();
+        // 探すボタン処理
+        $(".btn:not(#searchButton)").removeClass("disable");
+        if (tgt_cst != null) {
+            $("#searchButton").removeClass("disable");
+        }
     });
-
-    
+    // File API check
     if (window.File && window.FileReader) {
         console.log("File API is available");
     }else{console.log("File API is NOT available");}
-
+    // 接続処理等
     namespace = '/test';
     var hostname = document.location.hostname;
     console.log("hostname:"+hostname);
@@ -43,13 +48,14 @@ $(document).ready(function() {
     socket.on('searching', function(msg){
         $("#searchBar").val(msg.data);
         if ($("#searchBar").val() == Number($("#searchBar").attr("max"))) {
-            if ($("#result > p").length > 0)
-                $("#result > p").remove();
-            if ($("#result > img").length > 0)
-                $("#result > img").remove();
-            if ($(".theater > img").length > 0)
-                $(".theater > img").remove();
-            $("#afterLoader").fadeIn(10);
+            console.log("in!")
+            // if ($("#result > p").length > 0)
+            //     $("#result > p").remove();
+            // if ($("#result > img").length > 0)
+            //     $("#result > img").remove();
+            // if ($(".theater > img").length > 0)
+            //     $(".theater > img").remove();
+            // $("#afterLoader").fadeIn(10);
         }
     });
     // 画像選択時に表示
@@ -65,10 +71,24 @@ $(document).ready(function() {
         }else if (hostname.disconnected == true) {
             //うまくできない
             alert("サーバーとの接続に失敗しました\nページを再読み込みしてください");
+        } else if ($("#searchButton").hasClass("sending")) {
+            alert("画像を処理中です");
         } else {
+            // 探すボタン処理
+            $("#searchButton").addClass("disable sending");
+            // サーバへ送信
             $("#log").append('<br>' + $('<div/>').text("send").html());
             console.log("push")
-            socket.emit('push_send');            
+            socket.emit('push_send');
+            if ($("#result > p").length > 0) {
+                $("#result > p").remove();
+            }
+            if ($("#result > a").length > 0) {
+                $("#result > a").remove();
+            }
+            if ($(".theater > img").length > 0)
+                $(".theater > img").remove();
+            $("#afterLoader").fadeIn(10);
         }
         return false;        
     });
@@ -90,6 +110,7 @@ $(document).ready(function() {
         });
     });
     socket.on("process_finished", function(msg) {
+        $("#searchButton").removeClass("disable sending"); // 探すボタン処理
         $("#afterLoader").fadeOut();
         $(".theater").append('<img src="'+msg.img+'">');
         $("#result").append('<a href="javascript:void(0);" onclick="onClickImage();"><img src="'+msg.img+'"></a>');
@@ -112,6 +133,10 @@ $(document).ready(function() {
         return false;
     });
     $(".constellationList").click(function(){
+        // 探すボタン処理
+        if ($("#thumbnail > img").length > 0) {
+            $("#searchButton").removeClass("disable");
+        }
         id = $(this).attr("id");
         tgt_cst = id;
         $("#selectConstellation").empty().append(
@@ -185,7 +210,7 @@ function resizeB64(b64img, callback) {
 function onClickImage() {
     $(".theater").fadeIn();
     var rad = $("#tweetButton").outerHeight() / 2;
-    var wid = $("#tweetButton").outerWidth();
+    var wid = $("#tweetButton > span").innerWidth();
     var attr = rad + "px " + rad + "px " + rad + "px " + rad + "px";
     $("#tweetButton").css({
         "border-radius": attr,
